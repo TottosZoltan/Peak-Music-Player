@@ -153,6 +153,14 @@ select option{color:#000}
 .hello p{margin:0;color:var(--muted);line-height:1.45}
 .btn.big{padding:15px 28px;font-size:1.05rem}
 @media (prefers-reduced-motion:reduce){.bg::before,.dots i{animation:none}}
+.kar .w{opacity:.22;transform:none}.kar .w.on{opacity:1}
+.bg .b1{animation-duration:calc(24s*var(--tempo,1))}.bg .b2{animation-duration:calc(31s*var(--tempo,1))}.bg .b3{animation-duration:calc(38s*var(--tempo,1))}
+.tr{position:absolute;left:0;right:0;bottom:5.5vh;text-align:center;font-family:var(--serif);font-style:italic;font-size:clamp(1.1rem,3.4vw,1.6rem);color:var(--ember);padding-inline:8px}
+.ib.liked svg{fill:var(--ember);stroke:var(--ember)}
+.lst{display:grid;gap:6px;margin-bottom:10px;font-size:.85rem}
+.lst button{display:flex;gap:10px;align-items:center;text-align:left;padding:8px;border-radius:10px;border:1px solid var(--line);width:100%}
+.lst img{width:36px;height:36px;border-radius:6px;object-fit:cover}
+.lst .on{border-color:var(--ember)}
 </style>
 
 <div class="bg" aria-hidden="true">
@@ -164,6 +172,7 @@ select option{color:#000}
   <header class="top">
     <div class="clock" id="clock"><div class="d" id="clkD"></div><div class="t" id="clkT">--:--</div></div>
     <div class="tools">
+      <button class="ib" id="shBtn" aria-label="Sor megosztása"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 9l5-5 5 5M5 14v5h14v-5"/></svg></button>
       <button class="ib" id="fsBtn" aria-label="Teljes képernyő"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       <button class="ib" id="setBtn" aria-label="Beállítások"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
     </div>
@@ -173,7 +182,7 @@ select option{color:#000}
     <section class="view" id="vCover"><div class="cover" id="bigCover" role="img" aria-label="Album borító"></div></section>
     <section class="view lyrics" id="vLyr" hidden>
       <div class="line" id="line"></div>
-      <div class="next" id="next"></div>
+      <div class="next" id="next"></div><div class="tr" id="tr"></div>
     </section>
   </main>
 
@@ -186,6 +195,7 @@ select option{color:#000}
         <button class="ib fill" id="prev" aria-label="Előző"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
         <button class="ib play fill" id="play" aria-label="Lejátszás"><svg viewBox="0 0 24 24" id="playIco"><path d="M8 5v14l11-7z"/></svg></button>
         <button class="ib fill" id="nextBtn" aria-label="Következő"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+        <button class="ib" id="like" aria-label="Kedvenc" hidden><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button>
       </div>
       <div class="seg" role="group" aria-label="Nézet">
         <button id="tCover" aria-pressed="false">Borító</button>
@@ -219,9 +229,13 @@ select option{color:#000}
   <label class="chk"><input type="checkbox" id="cAuto"> Vezérlők automatikus elrejtése</label>
   <div class="fld"><label for="sSleep"><span>Elalvás időzítő</span></label><select id="sSleep"><option value="0">Ki</option><option value="15">15 perc</option><option value="30">30 perc</option><option value="60">60 perc</option></select></div>
   <label class="chk"><input type="checkbox" id="cKin"> Mozgó betűs dalszöveg</label>
+  <label class="chk"><input type="checkbox" id="cKar"> Karaoke mód (halvány szavak kigyúlnak)</label>
+  <label class="chk"><input type="checkbox" id="cTr"> Magyar fordítás a sor alatt</label>
   <label class="chk"><input type="checkbox" id="cEmo"> Emoji matricák</label>
   <label class="chk"><input type="checkbox" id="cClk"> Óra mutatása</label>
 
+  <h3>Eszközök</h3><div class="lst" id="devs"><p class="note">Bejelentkezés után itt választhatsz lejátszót.</p></div>
+  <h3>Előzmények</h3><div class="lst" id="hist"><p class="note">Itt jelennek meg a legutóbbi számok.</p></div>
   <h3>Spotify</h3>
   <button class="btn" id="conn">Bejelentkezés Spotifyal</button>
   <button class="btn ghost" id="disc" hidden>Kilépés a Spotifyból</button>
@@ -238,12 +252,12 @@ select option{color:#000}
 (function(){
 'use strict';
 /* Egyszer töltsd ki a saját Spotify Client ID-ddal. Utána a felhasználóknak elég egy gombnyomás a belépéshez. */
-var CLIENT_ID='';
+var CLIENT_ID='ef0a39ef6cb747d2ae18d054634f3eea';
 var $=function(id){return document.getElementById(id)};
 var LS={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 
 /* ---------- beállítások ---------- */
-var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto'};
+var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto',kar:false,tr:false};
 try{var sv=JSON.parse(LS.get('pms.settings')||'{}');for(var k in sv)if(k in S)S[k]=sv[k]}catch(e){}
 function saveS(){LS.set('pms.settings',JSON.stringify(S))}
 function applyS(){
@@ -254,10 +268,10 @@ function applyS(){
   $('cKin').checked=S.kin;$('cEmo').checked=S.emo;$('cClk').checked=S.clk;
   $('vLyr').classList.toggle('plain',!S.kin);
   $('clock').style.visibility=S.clk?'visible':'hidden';
-  $('vOff').textContent=(S.off/1000).toFixed(1)+' mp';$('rOff').value=S.off;$('cAuto').checked=S.auto;
+  $('vOff').textContent=(S.off/1000).toFixed(1)+' mp';$('rOff').value=S.off;$('cAuto').checked=S.auto;$('cKar').checked=S.kar;$('cTr').checked=S.tr;$('vLyr').classList.toggle('kar',S.kar);if(!S.tr)$('tr').textContent='';
 }
 [['rBlur','blur'],['rHue','hue'],['rFs','fs'],['rOff','off']].forEach(function(p){$(p[0]).addEventListener('input',function(e){S[p[1]]=+e.target.value;applyS();saveS()})});
-[['cKin','kin'],['cEmo','emo'],['cClk','clk'],['cAuto','auto']].forEach(function(p){$(p[0]).addEventListener('change',function(e){S[p[1]]=e.target.checked;applyS();saveS();if(p[1]!=='clk'){lastIdx=-2}})});
+[['cKin','kin'],['cEmo','emo'],['cClk','clk'],['cAuto','auto'],['cKar','kar'],['cTr','tr']].forEach(function(p){$(p[0]).addEventListener('change',function(e){S[p[1]]=e.target.checked;applyS();saveS();if(p[1]!=='clk'){lastIdx=-2}})});
 
 /* ---------- óra ---------- */
 function tickClock(){
@@ -341,9 +355,9 @@ function buildLine(text){
   return els;
 }
 var els=[];
-function showLine(i){
+function showLine(i){$('tr').textContent='';
   if(i<0||!lines[i]){$('line').innerHTML=lines.length?'<div class="dots"><i></i><i></i><i></i></div>':'<div class="empty">'+(P.track?'Ehhez a számhoz nincs szinkronizált szöveg.':'Indíts el egy számot.')+'</div>';els=[];$('next').textContent=lines[0]&&i<0?'':'';lastShown=-1;return}
-  els=buildLine(lines[i].s);lastShown=0;
+  els=buildLine(lines[i].s);lastShown=0;translate(lines[i].s);
   $('next').textContent=lines[i+1]?lines[i+1].s:'';
 }
 function updateLyrics(p){
@@ -363,6 +377,7 @@ function frame(){
   if(P.mode==='demo'&&P.playing&&p>=P.dur-50){nextTrack();p=0}
   $('barFill').style.width=(P.dur?p/P.dur*100:0)+'%';
   $('tCur').textContent=fmt(p);
+  if(lines!==mLines){mLines=lines;mood()}
   updateLyrics(p+S.off);
   requestAnimationFrame(frame);
 }
@@ -403,7 +418,7 @@ document.addEventListener('keydown',function(e){
 });
 
 /* ---------- panel + teljes képernyő ---------- */
-$('setBtn').onclick=function(){$('panel').classList.toggle('open')};
+$('setBtn').onclick=function(){$('panel').classList.toggle('open');devs()};
 $('closeSet').onclick=function(){$('panel').classList.remove('open')};
 var fsOK=!!(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen);
 if(!fsOK)$('fsBtn').hidden=true;
@@ -439,7 +454,7 @@ function fetchLyrics(track,artist,dur,id){
 /* ---------- Spotify (PKCE) ---------- */
 var sp={
   redirect:location.origin+location.pathname,
-  scopes:'user-read-currently-playing user-read-playback-state user-modify-playback-state',
+  scopes:'user-read-currently-playing user-read-playback-state user-modify-playback-state user-library-read user-library-modify',
   tok:null,timer:null,
   say:function(m){$('status').textContent=m||''},
   rand:function(n){var a=new Uint8Array(n);crypto.getRandomValues(a);return Array.from(a,function(b){return('0'+b.toString(16)).slice(-2)}).join('')},
@@ -476,7 +491,7 @@ var sp={
         if(changed){
           lines=[];lastIdx=-2;P.track=t;paintTrack(t);$('srcLbl').textContent='Spotify';
           extractPalette(img,function(pal){t.pal=pal;paintTrack(t)});
-          fetchLyrics(t.title,t.artist,t.dur,t.id);
+          fetchLyrics(t.title,t.artist,t.dur,t.id);onTrack(t);
         }
         P.posAt=j.progress_ms;P.tAt=now();P.playing=!!j.is_playing;paintPlay();
       });
@@ -486,7 +501,7 @@ var sp={
     $('conn').hidden=true;$('disc').hidden=false;sp.say('Csatlakozva. Indíts el egy számot a Spotifyon.');
     P.playing=false;paintPlay();$('hello').hidden=true;sp.poll();sp.timer=setInterval(sp.poll,4000);
   },
-  stop:function(){clearInterval(sp.timer);LS.del('pms.tok');sp.tok=null;$('conn').hidden=false;$('disc').hidden=true;sp.say('');loadDemo(0,false)}
+  stop:function(){clearInterval(sp.timer);LS.del('pms.tok');sp.tok=null;$('conn').hidden=false;$('disc').hidden=true;sp.say('');$('like').hidden=true;loadDemo(0,false)}
 };
 $('redir').textContent=sp.redirect;
 $('cid').value=LS.get('pms.cid')||'';
@@ -540,6 +555,70 @@ $('sSleep').onchange=function(){clearTimeout(sleepT);var m=+this.value;if(m)slee
 $('helloLogin').onclick=function(){sp.login()};
 $('helloDemo').onclick=function(){LS.set('pms.seen','1');$('hello').hidden=true};
 if(CLIENT_ID)$('dev').hidden=true;else $('conn').title='Előbb add meg a Client ID-t a fejlesztői beállításban';
+
+/* ---------- 2. kör ---------- */
+function api(method,path,body){
+  return sp.ensure().then(function(){return fetch('https://api.spotify.com/v1/me/'+path,{method:method,body:body?JSON.stringify(body):undefined,headers:body?{Authorization:'Bearer '+sp.tok.a,'Content-Type':'application/json'}:{Authorization:'Bearer '+sp.tok.a}})}).then(function(r){if(!r.ok)throw r.status;return r.json().catch(function(){return null})});
+}
+function paintLike(){$('like').classList.toggle('liked',!!P.liked);$('like').setAttribute('aria-pressed',!!P.liked)}
+$('like').onclick=function(){
+  if(!P.track)return;var on=!P.liked;P.liked=on;paintLike();
+  api(on?'PUT':'DELETE','tracks?ids='+P.track.id).catch(function(){P.liked=!on;paintLike();sp.say('A kedveléshez lépj ki, majd be újra (új jogosultság kell).')});
+};
+var H=[];try{H=JSON.parse(LS.get('pms.hist')||'[]')}catch(e){}
+function paintHist(){
+  var b=$('hist');if(!H.length)return;b.innerHTML='';
+  H.forEach(function(h){var x=document.createElement('button'),im=new Image(),s=document.createElement('span');im.alt='';im.src=h.img;s.textContent=h.title+' · '+h.artist;x.appendChild(im);x.appendChild(s);
+    x.onclick=function(){api('PUT','player/play',{uris:['spotify:track:'+h.id]}).then(function(){setTimeout(sp.poll,600)}).catch(function(){sp.say('Léptetéshez Premium és aktív eszköz kell.')})};b.appendChild(x)});
+}
+function onTrack(t){
+  $('like').hidden=false;P.liked=false;paintLike();
+  api('GET','tracks/contains?ids='+t.id).then(function(a){if(P.track&&P.track.id===t.id){P.liked=!!(a&&a[0]);paintLike()}}).catch(function(){});
+  H=H.filter(function(h){return h.id!==t.id});H.unshift({id:t.id,title:t.title,artist:t.artist,img:t.img});H=H.slice(0,15);LS.set('pms.hist',JSON.stringify(H));paintHist();
+}
+paintHist();
+function devs(){
+  var b=$('devs');if(!sp.tok)return;
+  api('GET','player/devices').then(function(j){b.innerHTML='';((j&&j.devices)||[]).forEach(function(d){var x=document.createElement('button');x.textContent=d.name+' · '+d.type;if(d.is_active)x.className='on';
+    x.onclick=function(){api('PUT','player',{device_ids:[d.id],play:true}).then(function(){setTimeout(sp.poll,700);setTimeout(devs,1000)}).catch(function(){sp.say('Az átváltáshoz Premium kell.')})};b.appendChild(x)});
+    if(!b.children.length)b.textContent='Nincs elérhető eszköz. Nyisd meg a Spotifyt valahol.'}).catch(function(){});
+}
+var trC={};
+function translate(s){
+  var el=$('tr');if(!S.tr)return;
+  if(trC[s]!==undefined){el.textContent=trC[s];return}
+  fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(s)+'&langpair=Autodetect|hu').then(function(r){return r.json()}).then(function(j){
+    var t=(j.responseData||{}).translatedText||'';if(!t||t.toLowerCase()===s.toLowerCase()||/MYMEMORY|QUERY LENGTH/i.test(t))t='';
+    trC[s]=t;if(lines[lastIdx]&&lines[lastIdx].s===s)el.textContent=t}).catch(function(){});
+}
+var mLines=null;
+function mood(){var n=lines.length,tp=1;if(n>4)tp=Math.max(.5,Math.min(1.6,(lines[n-1].t-lines[0].t)/(n-1)/4500));document.documentElement.style.setProperty('--tempo',tp.toFixed(2))}
+function wrap(x,t,w){var o=[],l='';t.split(' ').forEach(function(s){var n=l?l+' '+s:s;if(x.measureText(n).width>w&&l){o.push(l);l=s}else l=n});o.push(l);return o}
+$('shBtn').onclick=function(){
+  var ln=lines[lastIdx],t=P.track||{title:'',artist:''},txt=ln?ln.s:t.title,cs=getComputedStyle(document.documentElement);
+  var c=['--c1','--c2','--c3'].map(function(k){return cs.getPropertyValue(k).trim()});
+  var cv=document.createElement('canvas');cv.width=1080;cv.height=1350;var x=cv.getContext('2d');
+  var g=x.createLinearGradient(0,0,1080,1350);g.addColorStop(0,c[2]);g.addColorStop(.6,c[1]);g.addColorStop(1,c[0]);x.fillStyle=g;x.fillRect(0,0,1080,1350);
+  x.fillStyle='rgba(0,0,0,.35)';x.fillRect(0,0,1080,1350);
+  function done(){
+    x.fillStyle='#fff3e2';x.font='800 104px "Bricolage Grotesque",Arial,sans-serif';
+    wrap(x,txt,900).forEach(function(s,i){x.fillText(s,90,520+i*112)});
+    x.font='500 40px "Bricolage Grotesque",Arial,sans-serif';x.globalAlpha=.8;x.fillText(t.title+' · '+t.artist,90,1230);x.globalAlpha=1;
+    cv.toBlob(function(b){var f=new File([b],'dalszoveg.png',{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[f]}))navigator.share({files:[f]}).catch(function(){});
+      else{var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='dalszoveg.png';a.click()}});
+  }
+  var im=new Image();im.crossOrigin='anonymous';im.onload=function(){x.drawImage(im,90,90,200,200);done()};im.onerror=done;im.src=t.img||'';
+};
+(function(){
+  function m(n,v){var e=document.createElement('meta');e.name=n;e.content=v;document.head.appendChild(e)}
+  m('apple-mobile-web-app-capable','yes');m('mobile-web-app-capable','yes');m('theme-color','#0b0806');m('apple-mobile-web-app-status-bar-style','black-translucent');
+  try{var ic=document.createElement('canvas');ic.width=ic.height=512;var x=ic.getContext('2d');x.fillStyle='#0b0806';x.fillRect(0,0,512,512);
+    var g=x.createRadialGradient(256,230,10,256,230,300);g.addColorStop(0,'#ff8a2a');g.addColorStop(1,'#3a1d6e');x.fillStyle=g;x.beginPath();x.arc(256,256,170,0,7);x.fill();
+    var u=ic.toDataURL('image/png'),l=document.createElement('link');l.rel='apple-touch-icon';l.href=u;document.head.appendChild(l);
+    var mf=new Blob([JSON.stringify({name:'Peak Music Setup',short_name:'Peak Music',display:'fullscreen',background_color:'#0b0806',theme_color:'#0b0806',start_url:location.href.split('?')[0],icons:[{src:u,sizes:'512x512',type:'image/png'}]})],{type:'application/manifest+json'});
+    var k=document.createElement('link');k.rel='manifest';k.href=URL.createObjectURL(mf);document.head.appendChild(k)}catch(e){}
+})();
 
 /* ---------- indulás ---------- */
 applyS();setView(['cover','lyr','lock'].indexOf(S.view)>=0?S.view:'lyr');paintPlay();
