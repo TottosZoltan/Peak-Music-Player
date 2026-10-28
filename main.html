@@ -218,6 +218,10 @@ input[type=color]{width:100%;height:40px;padding:2px;border-radius:10px;border:1
 [data-anim="fade"] .w:not(.on){transform:none}
 [data-anim="slide"] .w:not(.on){transform:translateX(-.4em)}
 [data-anim="none"] .w{transition:none}[data-anim="none"] .w:not(.on){transform:none}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);z-index:9;max-width:min(92vw,420px);padding:12px 18px;border-radius:14px;background:rgba(14,8,4,.94);border:1px solid var(--line);font-size:.88rem;text-align:center;line-height:1.35}
+.toast[hidden]{display:none}
+.who .up{position:static;display:block;font-style:normal;font-size:.72rem;color:var(--muted);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:left}
+.chip button[aria-pressed="true"]{background:var(--ember);color:#1a0d02;font-weight:700}
 </style>
 
 <div class="bg" aria-hidden="true">
@@ -249,7 +253,7 @@ input[type=color]{width:100%;height:40px;padding:2px;border-radius:10px;border:1
     <div class="bar" id="bar" role="slider" aria-label="Pozíció" tabindex="0"><i id="barFill"></i></div>
     <div class="meta">
       <div class="thumb" id="thumb"></div>
-      <div class="who"><b id="ttl">–</b><span id="art">–</span></div>
+      <div class="who"><b id="ttl">–</b><span id="art">–</span><em class="up" id="up"></em></div>
       <div class="ctl">
         <button class="ib fill" id="prev" aria-label="Előző"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
         <button class="ib play fill" id="play" aria-label="Lejátszás"><svg viewBox="0 0 24 24" id="playIco"><path d="M8 5v14l11-7z"/></svg></button>
@@ -267,9 +271,9 @@ input[type=color]{width:100%;height:40px;padding:2px;border-radius:10px;border:1
   </footer>
 </div>
 
+<div class="toast" id="toast" role="status" hidden></div>
 <button class="wk" id="wk" hidden>Koppints: a kijelző maradjon ébren</button>
 <div class="np" id="np"></div>
-<div class="up" id="up"></div>
 <div class="hello" id="hello" hidden>
   <div class="card">
     <h1>Peak music setup</h1>
@@ -294,6 +298,8 @@ input[type=color]{width:100%;height:40px;padding:2px;border-radius:10px;border:1
     <h3>Lejátszó</h3>
     <label class="chk"><input type="checkbox" id="cWebAuto"> A zene ebben a böngészőben szóljon (automatikus)</label>
     <div class="fld"><label for="sDev"><span>Eszköz neve a Spotifyban</span></label><input type="text" id="sDev" maxlength="30" autocomplete="off"></div>
+    <div class="fld"><label for="rVol"><span>Hangerő</span><span id="vVol"></span></label><input type="range" id="rVol" min="0" max="100" step="1"></div>
+    <div class="chips"><span class="chip"><button id="bShuf" aria-pressed="false">Keverés</button></span><span class="chip"><button id="bRep" aria-pressed="false">Ismétlés: ki</button></span></div>
     <button class="btn ghost" id="webBtn">Böngészős lejátszó indítása</button>
     <p class="note">Spotify Premium kell. A Spotify ezt új eszközként látja, a zene itt szól, nem a Spotify appban. iPhone-on korlátozottan működik.</p>
     <h3>Keresés</h3>
@@ -379,7 +385,7 @@ var $=function(id){return document.getElementById(id)};
 var LS={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 
 /* ---------- beállítások ---------- */
-var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto',kar:false,tr:false,font:'',shape:'round',csz:100,anim:'pop',al:'c',lcol:'paper',lcus:'#ffffff',caps:false,webAuto:true,dev:'Peak Music Setup',msAuto:true,bgm:'blob',spd:100,dim:0,glow:28,col1:'#ff7a1a',col2:'#3a1d6e',cs:100,cw:'',ccol:'paper',ccus:'#ffffff',cpos:'top',c24:true,csec:false,cdate:true};
+var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto',kar:false,tr:false,font:'',shape:'round',csz:100,anim:'pop',al:'c',lcol:'paper',lcus:'#ffffff',caps:false,webAuto:true,vol:80,dev:'Peak Music Setup',msAuto:true,bgm:'blob',spd:100,dim:0,glow:28,col1:'#ff7a1a',col2:'#3a1d6e',cs:100,cw:'',ccol:'paper',ccus:'#ffffff',cpos:'top',c24:true,csec:false,cdate:true};
 try{var sv=JSON.parse(LS.get('pms.settings')||'{}');for(var k in sv)if(k in S)S[k]=sv[k]}catch(e){}
 function saveS(){LS.set('pms.settings',JSON.stringify(S))}
 function applyS(){
@@ -513,16 +519,18 @@ function loadDemo(i,autoplay){
   P.track=t;P.dur=t.dur*1000;lines=t.lrc;lastIdx=-2;paintTrack(t);setPos(0,autoplay);
   $('srcLbl').textContent='Demó';
 }
-function nextTrack(){if(P.mode==='demo')loadDemo(P.idx+1,true);else sp.cmd('POST','next')}
-function prevTrack(){if(P.mode==='demo'){if(pos()>3000)setPos(0);else loadDemo(P.idx-1,true)}else sp.cmd('POST','previous')}
+function nextTrack(){if(P.mode==='demo')loadDemo(P.idx+1,true);else if(webP&&webId)webP.nextTrack();else sp.cmd('POST','next')}
+function prevTrack(){if(P.mode==='demo'){if(pos()>3000)setPos(0);else loadDemo(P.idx-1,true)}else if(webP&&webId)webP.previousTrack();else sp.cmd('POST','previous')}
 $('nextBtn').onclick=nextTrack;$('prev').onclick=prevTrack;
 $('play').onclick=function(){
   if(P.mode==='demo'){setPos(pos(),!P.playing)}
+  else if(!(P.track&&P.track.sp)){startSomething()}
+  else if(webP&&webId){setPos(pos(),!P.playing);webP.togglePlay()}
   else{var pl=P.playing;setPos(pos(),!pl);sp.cmd('PUT',pl?'pause':'play')}
 };
 $('bar').addEventListener('click',function(e){
   var r=this.getBoundingClientRect(),ms=(e.clientX-r.left)/r.width*P.dur;setPos(ms);lastIdx=-2;
-  if(P.mode==='spotify')sp.cmd('PUT','seek?position_ms='+Math.round(ms));
+  if(P.mode==='spotify'){if(webP&&webId)webP.seek(Math.round(ms));else sp.cmd('PUT','seek?position_ms='+Math.round(ms))}
 });
 
 /* ---------- nézetváltás ---------- */
@@ -582,7 +590,7 @@ function fetchLyrics(track,artist,dur,id){plainTxt='';
 /* ---------- Spotify (PKCE) ---------- */
 var sp={
   redirect:location.origin+location.pathname,
-  scopes:'user-read-currently-playing user-read-playback-state user-modify-playback-state user-library-read user-library-modify streaming user-read-email user-read-private playlist-read-private',
+  scopes:'user-read-currently-playing user-read-playback-state user-modify-playback-state user-library-read user-library-modify streaming user-read-email user-read-private playlist-read-private user-read-recently-played',
   tok:null,timer:null,
   say:function(m){$('status').textContent=m||''},
   rand:function(n){var a=new Uint8Array(n);crypto.getRandomValues(a);return Array.from(a,function(b){return('0'+b.toString(16)).slice(-2)}).join('')},
@@ -606,14 +614,14 @@ var sp={
     return sp.token({grant_type:'refresh_token',refresh_token:sp.tok.r,client_id:LS.get('pms.cid')||''});
   },
   cmd:function(method,path){
-    sp.ensure().then(function(){return fetch('https://api.spotify.com/v1/me/player/'+path,{method:method,headers:{Authorization:'Bearer '+sp.tok.a}})}).then(function(){setTimeout(sp.poll,500)}).catch(function(){sp.say('A vezérléshez Premium kell és aktív eszköz.')});
+    sp.ensure().then(function(){return fetch('https://api.spotify.com/v1/me/player/'+path+(webId?(path.indexOf('?')<0?'?':'&')+'device_id='+webId:''),{method:method,headers:{Authorization:'Bearer '+sp.tok.a}})}).then(function(){setTimeout(sp.poll,500)}).catch(function(){sp.say('A vezérléshez Premium kell és aktív eszköz.')});
   },
   poll:function(){
     sp.ensure().then(function(){return fetch('https://api.spotify.com/v1/me/player/currently-playing',{headers:{Authorization:'Bearer '+sp.tok.a}})}).then(function(r){
       if(r.status===204){P.playing=false;paintPlay();sp.say('Nincs szóló szám. Indíts el valamit a Spotifyon.');return}
       return r.json().then(function(j){
         if(!j||!j.item)return;var it=j.item,img=(it.album&&it.album.images&&it.album.images[0]||{}).url||'';
-        var t={id:it.id,title:it.name,artist:(it.artists||[]).map(function(a){return a.name}).join(', '),dur:it.duration_ms,img:img,pal:P.track&&P.track.pal||['#ff8a2a','#b3261e','#3a1d6e']};
+        var t={sp:1,id:it.id,title:it.name,artist:(it.artists||[]).map(function(a){return a.name}).join(', '),dur:it.duration_ms,img:img,pal:P.track&&P.track.pal||['#ff8a2a','#b3261e','#3a1d6e']};
         var changed=!P.track||P.track.id!==t.id;
         P.mode='spotify';P.dur=t.dur;
         if(changed){
@@ -627,7 +635,7 @@ var sp={
   },
   start:function(){
     $('conn').hidden=true;$('disc').hidden=false;sp.say('Csatlakozva. Indíts el egy számot a Spotifyon.');
-    P.playing=false;paintPlay();$('hello').hidden=true;sdkLoad();webAuto();sp.poll();sp.timer=setInterval(sp.poll,4000);
+    P.mode='spotify';P.playing=false;paintPlay();$('hello').hidden=true;sdkLoad();webAuto();sp.poll();sp.timer=setInterval(sp.poll,4000);
   },
   stop:function(){clearInterval(sp.timer);LS.del('pms.tok');sp.tok=null;$('conn').hidden=false;$('disc').hidden=true;sp.say('');$('like').hidden=true;$('up').textContent='';loadDemo(0,false)}
 };
@@ -700,7 +708,7 @@ function paintHist(){
     x.onclick=function(){api('PUT','player/play',{uris:['spotify:track:'+h.id]}).then(function(){setTimeout(sp.poll,600)}).catch(function(){sp.say('Léptetéshez Premium és aktív eszköz kell.')})};b.appendChild(x)});
 }
 function onTrack(t){
-  $('like').hidden=false;P.liked=false;paintLike();$('up').textContent='';setTimeout(upNext,1500);
+  $('like').hidden=false;P.liked=false;paintLike();if(!webId)$('up').textContent='';setTimeout(upNext,1500);
   api('GET','tracks/contains?ids='+t.id).then(function(a){if(P.track&&P.track.id===t.id){P.liked=!!(a&&a[0]);paintLike()}}).catch(function(){});
   H=H.filter(function(h){return h.id!==t.id});H.unshift({id:t.id,title:t.title,artist:t.artist,img:t.img});H=H.slice(0,15);LS.set('pms.hist',JSON.stringify(H));paintHist();
 }
@@ -802,7 +810,7 @@ function kUpdate(p){
     for(var j=0;j<3;j++)ds[j].classList.toggle('on',j<n);
   }
 }
-function seekMs(ms){ms=Math.max(0,ms);setPos(ms);if(P.mode!=='demo')sp.cmd('PUT','seek?position_ms='+Math.round(ms))}
+function seekMs(ms){ms=Math.max(0,ms);setPos(ms);if(P.mode!=='demo'){if(webP&&webId)webP.seek(Math.round(ms));else sp.cmd('PUT','seek?position_ms='+Math.round(ms))}}
 $('kList').onclick=function(e){var d=e.target.closest('.kl');if(d)seekMs(lines[+d.dataset.i].t-S.off+20)};
 function kBrowse(dy){kOff+=dy;$('kList').classList.add('br');kScroll();clearTimeout(kT);kT=setTimeout(function(){kOff=0;$('kList').classList.remove('br');kScroll()},3500)}
 $('vKar').addEventListener('wheel',function(e){e.preventDefault();kBrowse(-e.deltaY)},{passive:false});
@@ -844,26 +852,43 @@ var webP=null,webId=null,sdkOk=false,sdkL=false;
 function sdkLoad(){
   if(sdkL)return;sdkL=true;
   window.onSpotifyWebPlaybackSDKReady=function(){sdkOk=true;webAuto()};
-  var s=document.createElement('script');s.src='https://sdk.scdn.co/spotify-player.js';s.async=true;document.head.appendChild(s);
+  var s=document.createElement('script');s.src='https://sdk.scdn.co/spotify-player.js';s.async=true;s.onerror=function(){sdkL=false;webErr('A Spotify lejátszó nem töltődött be. Kapcsold ki a reklámblokkolót, és ellenőrizd a kapcsolatot.')};document.head.appendChild(s);
 }
+var toT;
+function toast(m){var t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toT);toT=setTimeout(function(){t.hidden=true},6500)}
+function webErr(m){sp.say(m);toast(m)}
+function devLbl(){if(P.mode==='spotify')$('srcLbl').textContent=webId?'Spotify · ez a böngésző':'Spotify · másik eszköz'}
 function webStop(){
   try{webP.disconnect()}catch(e){}
-  webP=null;webId=null;$('webBtn').textContent='Böngészős lejátszó indítása';sp.say('Böngészős lejátszó leállítva.');
+  webP=null;webId=null;$('webBtn').textContent='Böngészős lejátszó indítása';devLbl();sp.say('Böngészős lejátszó leállítva.');
+}
+function webState(s){
+  if(!s)return;
+  P.mode='spotify';P.posAt=s.position;P.tAt=now();P.playing=!s.paused;paintPlay();
+  var n=s.track_window&&s.track_window.next_tracks&&s.track_window.next_tracks[0];
+  $('up').textContent=n?'Következik: '+n.name+' · '+((n.artists&&n.artists[0]&&n.artists[0].name)||''):'';
+  P.shuf=!!s.shuffle;P.rep=s.repeat_mode||0;
+  $('bShuf').setAttribute('aria-pressed',P.shuf);$('bRep').textContent='Ismétlés: '+['ki','lista','szám'][P.rep];$('bRep').setAttribute('aria-pressed',P.rep>0);
+  devLbl();setTimeout(sp.poll,250);
 }
 function webInit(){
   var nm=S.dev||'Peak Music Setup';
-  webP=new Spotify.Player({name:nm,getOAuthToken:function(cb){sp.ensure().then(function(){cb(sp.tok.a)})},volume:.8});
+  if(!window.isSecureContext){webErr('A hanghoz https cím kell, ezen a címen nem működhet a böngészős lejátszó.');return}
+  webP=new Spotify.Player({name:nm,getOAuthToken:function(cb){sp.ensure().then(function(){cb(sp.tok.a)})},volume:(S.vol||80)/100});
   webP.addListener('ready',function(d){
-    webId=d.device_id;$('webBtn').textContent='Böngészős lejátszó leállítása';sp.say('Ez az oldal mostantól Spotify-eszköz: '+nm);
-    api('PUT','player',{device_ids:[webId],play:!!P.playing}).then(function(){setTimeout(sp.poll,800);setTimeout(devs,1200)}).catch(function(){sp.say('Az átváltáshoz Premium kell.')});
+    webId=d.device_id;$('webBtn').textContent='Böngészős lejátszó leállítása';devLbl();toast('Kész: ez az oldal mostantól Spotify-eszköz ('+nm+').');
+    api('PUT','player',{device_ids:[webId],play:!!P.playing}).then(function(){setTimeout(sp.poll,800);setTimeout(devs,1200)}).catch(function(){webErr('Az átváltáshoz Premium kell, és legyen elindítva egy szám.')});
     if(S.msAuto&&!msAct){$('cMs').checked=true;msOn()}
   });
-  webP.addListener('not_ready',function(){webId=null});
-  webP.addListener('player_state_changed',function(){setTimeout(sp.poll,300)});
-  ['initialization_error','authentication_error','account_error','playback_error'].forEach(function(k){
-    webP.addListener(k,function(e){sp.say(k==='account_error'?'Ehhez Premium fiók kell.':k==='authentication_error'?'Lépj ki, majd be újra (új jogosultság kell).':'Lejátszó hiba: '+((e&&e.message)||k))});
-  });
+  webP.addListener('not_ready',function(){webId=null;devLbl()});
+  webP.addListener('player_state_changed',webState);
+  webP.addListener('autoplay_failed',function(){webErr('A böngésző letiltotta az automatikus indítást. Koppints a lejátszás gombra.')});
+  webP.addListener('initialization_error',function(){webErr('Ez a böngésző nem tudja lejátszani a Spotify védett hangját (DRM). Próbáld Chrome-ban vagy Safariban.')});
+  webP.addListener('authentication_error',function(){webErr('Lépj ki, majd be újra: új jogosultságok kellenek.')});
+  webP.addListener('account_error',function(){webErr('Ehhez teljes Spotify Premium fiók kell.')});
+  webP.addListener('playback_error',function(e){webErr('Lejátszási hiba: '+((e&&e.message)||''))});
   webP.activateElement();webP.connect();
+  setTimeout(function(){if(webP&&!webId)webErr('A böngészős lejátszó nem csatlakozott. Ellenőrizd a Premiumot, és hogy a fiókod fel van-e véve a Spotify-app tesztelői közé.')},12000);
 }
 function webAuto(){if(S.webAuto&&sp.tok&&sdkOk&&!webP)webInit()}
 function webStart(){
@@ -873,6 +898,14 @@ function webStart(){
   S.webAuto=true;saveS();applyS3();webInit();
 }
 document.addEventListener('pointerdown',function(){if(webP)try{webP.activateElement()}catch(e){}},{passive:true});
+function needPick(){$('panel').classList.add('open');tab('zene');webErr('Válassz egy számot a keresésből vagy a listáidból.')}
+function startSomething(){
+  if(!sp.tok){needPick();return}
+  api('GET','player/recently-played?limit=1').then(function(j){var it=j&&j.items&&j.items[0]&&j.items[0].track;if(it)playUri({uris:[it.uri]});else needPick()}).catch(needPick);
+}
+$('rVol').addEventListener('input',function(){S.vol=+this.value;saveS();$('vVol').textContent=S.vol+'%';if(webP)try{webP.setVolume(S.vol/100)}catch(e){}});
+$('bShuf').onclick=function(){api('PUT','player/shuffle?state='+!P.shuf+(webId?'&device_id='+webId:'')).catch(function(){webErr('A keveréshez Premium és aktív lejátszó kell.')})};
+$('bRep').onclick=function(){api('PUT','player/repeat?state='+['off','context','track'][((P.rep||0)+1)%3]+(webId?'&device_id='+webId:'')).catch(function(){webErr('Az ismétléshez Premium és aktív lejátszó kell.')})};
 $('webBtn').onclick=webStart;
 
 /* ---------- ébren tartás (Wake Lock + NoSleep-féle videó) ---------- */
@@ -935,7 +968,7 @@ function applyS3(){
   r.setProperty('--cz',S.csz/100);r.setProperty('--lcol',S.lcol==='accent'?'var(--ember)':S.lcol==='custom'?S.lcus:'var(--paper)');
   $('vCz').textContent=S.csz+'%';
   [['rCz','csz'],['sShape','shape'],['sAn','anim'],['sAl','al'],['sLc','lcol'],['lCus','lcus'],['sDev','dev']].forEach(function(q){$(q[0]).value=S[q[1]]});
-  $('cCaps').checked=S.caps;$('cWebAuto').checked=S.webAuto;
+  $('cCaps').checked=S.caps;$('rVol').value=S.vol;$('vVol').textContent=S.vol+'%';$('cWebAuto').checked=S.webAuto;
 }
 [['rCz','csz',1],['sShape','shape'],['sAn','anim'],['sAl','al'],['sLc','lcol'],['lCus','lcus'],['cCaps','caps',2],['cWebAuto','webAuto',2]].forEach(function(q){
   var e=$(q[0]);e.addEventListener(q[2]===2?'change':'input',function(){
