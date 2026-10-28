@@ -177,6 +177,12 @@ select option{color:#000}
 .vc .tr{display:none}
 @media (max-width:480px){.seg button{padding:8px 7px;font-size:.7rem;letter-spacing:.03em}}
 @media (prefers-reduced-motion:reduce){#kList,.kl{transition:none}}
+.np{display:none;position:fixed;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom));z-index:2;text-align:center;font-size:.85rem;color:var(--muted);padding-inline:20px}
+.lock .np{display:block}.lock:not(.idle) .np{display:none}
+.lock .app{transition:filter 1.5s}.lock.idle .app{filter:brightness(.6)}
+.lock .clock,.lock .lyrics,.lock .np{transform:translate(var(--bx,0px),var(--by,0px));transition:transform 3s}
+.lock .clock .d{font-size:clamp(.9rem,3vw,1.3rem)}
+@media (orientation:landscape) and (max-height:520px){.lock .clock{top:3vh}.lock .clock .t{font-size:clamp(2.6rem,22vh,6rem)}.lock .lyrics{padding-top:28vh}.lock .line{font-size:calc(var(--fs)*clamp(1.8rem,9vh,4rem))}}
 </style>
 
 <div class="bg" aria-hidden="true">
@@ -226,6 +232,7 @@ select option{color:#000}
   </footer>
 </div>
 
+<div class="np" id="np"></div>
 <div class="up" id="up"></div>
 <div class="hello" id="hello" hidden>
   <div class="card">
@@ -246,6 +253,8 @@ select option{color:#000}
   <div class="fld"><label for="rOff"><span>Szöveg időzítése</span><span id="vOff"></span></label><input type="range" id="rOff" min="-3000" max="3000" step="100"></div>
   <h3>Téma</h3>
   <div class="sw" id="sw" role="group" aria-label="Téma"></div>
+  <label class="chk"><input type="checkbox" id="cMs"> Zárképernyős kártya (kísérleti)</label>
+  <p class="note">A lejátszó-kártyára kiírja az aktuális sort. Ehhez néma hangot játszik le, ami iPhone-on megszakíthatja a Spotifyt: ilyenkor kapcsold ki.</p>
   <div class="fld"><label for="sFont"><span>Betűtípus</span></label><select id="sFont"><option value="">Alap</option><option value="serif">Klasszikus</option><option value="mono">Gép</option></select></div>
   <label class="chk"><input type="checkbox" id="cAuto"> Vezérlők automatikus elrejtése</label>
   <div class="fld"><label for="sSleep"><span>Elalvás időzítő</span></label><select id="sSleep"><option value="0">Ki</option><option value="15">15 perc</option><option value="30">30 perc</option><option value="60">60 perc</option></select></div>
@@ -331,7 +340,7 @@ function paintPlay(){
   if(P.playing)wake();
 }
 var wl=null;function wake(){try{if(navigator.wakeLock&&!wl){navigator.wakeLock.request('screen').then(function(l){wl=l;l.addEventListener('release',function(){wl=null})}).catch(function(){})}}catch(e){}}
-document.addEventListener('visibilitychange',function(){if(!document.hidden&&P.playing)wake()});
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&(P.playing||S.view==='lock'))wake()});
 
 /* ---------- színkivonás ---------- */
 function paintTrack(t){
@@ -375,7 +384,7 @@ function buildLine(text){
   return els;
 }
 var els=[];
-function showLine(i){$('tr').textContent='';
+function showLine(i){$('tr').textContent='';msLine(i);
   if(i<0||!lines[i]){$('line').innerHTML=lines.length?'<div class="dots"><i></i><i></i><i></i></div>':'<div class="empty">'+(P.track?'Ehhez a számhoz nincs szinkronizált szöveg.':'Indíts el egy számot.')+'</div>';els=[];$('next').textContent=lines[0]&&i<0?'':'';lastShown=-1;return}
   els=buildLine(lines[i].s);lastShown=0;translate(lines[i].s);
   $('next').textContent=lines[i+1]?lines[i+1].s:'';
@@ -399,7 +408,8 @@ function frame(){
   $('tCur').textContent=fmt(p);
   plainSync(p);
   if(lines!==mLines){mLines=lines;mood();buildKar()}
-  updateLyrics(p+S.off);kUpdate(p+S.off);
+  updateLyrics(p+S.off);kUpdate(p+S.off);msTick(p);
+  if(P.track&&npK!==P.track.title+P.track.artist){npK=P.track.title+P.track.artist;$('np').textContent=P.track.title+' · '+P.track.artist}
   requestAnimationFrame(frame);
 }
 
@@ -428,6 +438,7 @@ function setView(v){
   document.body.classList.toggle('lock',v==='lock');document.body.classList.toggle('vc',v==='cover');
   $('tCover').setAttribute('aria-pressed',v==='cover');$('tLyr').setAttribute('aria-pressed',v==='lyr');$('tLock').setAttribute('aria-pressed',v==='lock');$('tKar').setAttribute('aria-pressed',v==='kar');
   if(v==='kar')kScroll();
+  if(v==='lock')wake();
   poke();
 }
 $('tCover').onclick=function(){setView('cover')};$('tLyr').onclick=function(){setView('lyr')};
@@ -705,6 +716,43 @@ $('vKar').addEventListener('touchstart',function(e){tY=e.touches[0].clientY},{pa
 $('vKar').addEventListener('touchmove',function(e){var y=e.touches[0].clientY;kBrowse(y-tY);tY=y},{passive:true});
 $('tKar').onclick=function(){setView('kar')};
 window.addEventListener('resize',kScroll);
+
+/* ---------- dokk mód + zárképernyős kártya ---------- */
+var npK='',msAct=false,msA=null,msT=0;
+setInterval(function(){if(S.view!=='lock')return;var r=document.documentElement.style;r.setProperty('--bx',Math.round(Math.random()*16-8)+'px');r.setProperty('--by',Math.round(Math.random()*16-8)+'px')},60000);
+function silentWav(){
+  var n=8000,b=new ArrayBuffer(44+n*2),v=new DataView(b);
+  function s(o,t){for(var i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))}
+  s(0,'RIFF');v.setUint32(4,36+n*2,true);s(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,8000,true);v.setUint32(28,16000,true);v.setUint16(32,2,true);v.setUint16(34,16,true);s(36,'data');v.setUint32(40,n*2,true);
+  return URL.createObjectURL(new Blob([b],{type:'audio/wav'}));
+}
+function msOn(){
+  if(!('mediaSession' in navigator)){$('cMs').checked=false;sp.say('Ez a böngésző nem támogatja a lejátszó-kártyát.');return}
+  if(!msA){msA=new Audio(silentWav());msA.loop=true;msA.setAttribute('playsinline','')}
+  msA.play().then(function(){
+    msAct=true;var m=navigator.mediaSession;
+    m.setActionHandler('play',function(){if(!P.playing)$('play').click()});
+    m.setActionHandler('pause',function(){if(P.playing)$('play').click()});
+    m.setActionHandler('nexttrack',nextTrack);m.setActionHandler('previoustrack',prevTrack);
+    try{m.setActionHandler('seekto',function(d){seekMs(d.seekTime*1000)})}catch(e){}
+    msLine(lastIdx);
+  }).catch(function(){$('cMs').checked=false;sp.say('A böngésző nem engedte elindítani a hangot.')});
+}
+function msOff(){
+  msAct=false;if(msA)msA.pause();
+  try{var m=navigator.mediaSession;m.metadata=null;['play','pause','nexttrack','previoustrack','seekto'].forEach(function(a){m.setActionHandler(a,null)})}catch(e){}
+}
+function msLine(i){
+  if(!msAct)return;var t=P.track||{},ln=lines[i],nx=lines[i+1];
+  try{navigator.mediaSession.metadata=new MediaMetadata({title:(ln&&ln.s)||t.title||'',artist:t.title?t.title+' · '+t.artist:'',album:(nx&&nx.s)||'',artwork:t.img?[{src:t.img,sizes:'512x512'}]:[]})}catch(e){}
+}
+function msTick(p){
+  if(!msAct||Date.now()-msT<1000)return;msT=Date.now();
+  try{var m=navigator.mediaSession;m.playbackState=P.playing?'playing':'paused';m.setPositionState({duration:P.dur/1000,position:Math.min(Math.max(p,0),P.dur)/1000,playbackRate:1})}catch(e){}
+}
+/* zárolt képernyőn a requestAnimationFrame leáll, ezért időzítő viszi tovább */
+setInterval(function(){if(document.hidden&&msAct){var p=pos();updateLyrics(p+S.off);msTick(p)}},500);
+$('cMs').onchange=function(){if(this.checked)msOn();else msOff()};
 
 /* ---------- indulás ---------- */
 applyS();setView(['cover','lyr','kar','lock'].indexOf(S.view)>=0?S.view:'lyr');paintPlay();
