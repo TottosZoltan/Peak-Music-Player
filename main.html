@@ -161,6 +161,10 @@ select option{color:#000}
 .lst button{display:flex;gap:10px;align-items:center;text-align:left;padding:8px;border-radius:10px;border:1px solid var(--line);width:100%}
 .lst img{width:36px;height:36px;border-radius:6px;object-fit:cover}
 .lst .on{border-color:var(--ember)}
+#pbox{position:absolute;inset:16vh 8vw 14vh;overflow:hidden;white-space:pre-wrap;text-align:center;font-size:clamp(1.1rem,3.6vw,1.7rem);line-height:1.6;color:var(--paper);scrollbar-width:none;-webkit-mask-image:linear-gradient(transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(transparent,#000 12%,#000 88%,transparent)}
+#pbox[hidden]{display:none}
+.up{position:fixed;right:18px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:3;max-width:55vw;text-align:right;font-size:.8rem;color:var(--muted);transition:opacity .5s}
+.idle .up{opacity:0}
 </style>
 
 <div class="bg" aria-hidden="true">
@@ -182,7 +186,7 @@ select option{color:#000}
     <section class="view" id="vCover"><div class="cover" id="bigCover" role="img" aria-label="Album borító"></div></section>
     <section class="view lyrics" id="vLyr" hidden>
       <div class="line" id="line"></div>
-      <div class="next" id="next"></div><div class="tr" id="tr"></div>
+      <div id="pbox" hidden></div><div class="next" id="next"></div><div class="tr" id="tr"></div>
     </section>
   </main>
 
@@ -207,6 +211,7 @@ select option{color:#000}
   </footer>
 </div>
 
+<div class="up" id="up"></div>
 <div class="hello" id="hello" hidden>
   <div class="card">
     <h1>Peak music setup</h1>
@@ -226,6 +231,7 @@ select option{color:#000}
   <div class="fld"><label for="rOff"><span>Szöveg időzítése</span><span id="vOff"></span></label><input type="range" id="rOff" min="-3000" max="3000" step="100"></div>
   <h3>Téma</h3>
   <div class="sw" id="sw" role="group" aria-label="Téma"></div>
+  <div class="fld"><label for="sFont"><span>Betűtípus</span></label><select id="sFont"><option value="">Alap</option><option value="serif">Klasszikus</option><option value="mono">Gép</option></select></div>
   <label class="chk"><input type="checkbox" id="cAuto"> Vezérlők automatikus elrejtése</label>
   <div class="fld"><label for="sSleep"><span>Elalvás időzítő</span></label><select id="sSleep"><option value="0">Ki</option><option value="15">15 perc</option><option value="30">30 perc</option><option value="60">60 perc</option></select></div>
   <label class="chk"><input type="checkbox" id="cKin"> Mozgó betűs dalszöveg</label>
@@ -257,7 +263,7 @@ var $=function(id){return document.getElementById(id)};
 var LS={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 
 /* ---------- beállítások ---------- */
-var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto',kar:false,tr:false};
+var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto',kar:false,tr:false,font:''};
 try{var sv=JSON.parse(LS.get('pms.settings')||'{}');for(var k in sv)if(k in S)S[k]=sv[k]}catch(e){}
 function saveS(){LS.set('pms.settings',JSON.stringify(S))}
 function applyS(){
@@ -268,7 +274,7 @@ function applyS(){
   $('cKin').checked=S.kin;$('cEmo').checked=S.emo;$('cClk').checked=S.clk;
   $('vLyr').classList.toggle('plain',!S.kin);
   $('clock').style.visibility=S.clk?'visible':'hidden';
-  $('vOff').textContent=(S.off/1000).toFixed(1)+' mp';$('rOff').value=S.off;$('cAuto').checked=S.auto;$('cKar').checked=S.kar;$('cTr').checked=S.tr;$('vLyr').classList.toggle('kar',S.kar);if(!S.tr)$('tr').textContent='';
+  $('vOff').textContent=(S.off/1000).toFixed(1)+' mp';$('rOff').value=S.off;$('cAuto').checked=S.auto;$('cKar').checked=S.kar;$('cTr').checked=S.tr;$('vLyr').classList.toggle('kar',S.kar);$('sFont').value=S.font;document.documentElement.style.setProperty('--display',S.font==='serif'?'var(--serif)':S.font==='mono'?'ui-monospace,Menlo,Consolas,monospace':'');if(!S.tr)$('tr').textContent='';
 }
 [['rBlur','blur'],['rHue','hue'],['rFs','fs'],['rOff','off']].forEach(function(p){$(p[0]).addEventListener('input',function(e){S[p[1]]=+e.target.value;applyS();saveS()})});
 [['cKin','kin'],['cEmo','emo'],['cClk','clk'],['cAuto','auto'],['cKar','kar'],['cTr','tr']].forEach(function(p){$(p[0]).addEventListener('change',function(e){S[p[1]]=e.target.checked;applyS();saveS();if(p[1]!=='clk'){lastIdx=-2}})});
@@ -377,6 +383,7 @@ function frame(){
   if(P.mode==='demo'&&P.playing&&p>=P.dur-50){nextTrack();p=0}
   $('barFill').style.width=(P.dur?p/P.dur*100:0)+'%';
   $('tCur').textContent=fmt(p);
+  plainSync(p);
   if(lines!==mLines){mLines=lines;mood()}
   updateLyrics(p+S.off);
   requestAnimationFrame(frame);
@@ -437,16 +444,16 @@ function parseLRC(txt){
   });
   return out.sort(function(a,b){return a.t-b.t});
 }
-function fetchLyrics(track,artist,dur,id){
+function fetchLyrics(track,artist,dur,id){plainTxt='';
   var u='https://lrclib.net/api/get?track_name='+encodeURIComponent(track)+'&artist_name='+encodeURIComponent(artist)+'&duration='+Math.round(dur/1000);
   fetch(u).then(function(r){return r.ok?r.json():Promise.reject()}).then(function(j){
     if(P.track&&P.track.id!==id)return;
-    lines=j.syncedLyrics?parseLRC(j.syncedLyrics):[];lastIdx=-2;
+    lines=j.syncedLyrics?parseLRC(j.syncedLyrics):[];plainTxt=lines.length?'':(j.plainLyrics||'');lastIdx=-2;
   }).catch(function(){
     var u2='https://lrclib.net/api/search?q='+encodeURIComponent(track+' '+artist);
     fetch(u2).then(function(r){return r.json()}).then(function(a){
       if(P.track&&P.track.id!==id)return;
-      var h=a.filter(function(x){return x.syncedLyrics})[0];lines=h?parseLRC(h.syncedLyrics):[];lastIdx=-2;
+      var h=a.filter(function(x){return x.syncedLyrics})[0];lines=h?parseLRC(h.syncedLyrics):[];plainTxt=h?'':((a.filter(function(x){return x.plainLyrics})[0]||{}).plainLyrics||'');lastIdx=-2;
     }).catch(function(){lines=[];lastIdx=-2});
   });
 }
@@ -501,7 +508,7 @@ var sp={
     $('conn').hidden=true;$('disc').hidden=false;sp.say('Csatlakozva. Indíts el egy számot a Spotifyon.');
     P.playing=false;paintPlay();$('hello').hidden=true;sp.poll();sp.timer=setInterval(sp.poll,4000);
   },
-  stop:function(){clearInterval(sp.timer);LS.del('pms.tok');sp.tok=null;$('conn').hidden=false;$('disc').hidden=true;sp.say('');$('like').hidden=true;loadDemo(0,false)}
+  stop:function(){clearInterval(sp.timer);LS.del('pms.tok');sp.tok=null;$('conn').hidden=false;$('disc').hidden=true;sp.say('');$('like').hidden=true;$('up').textContent='';loadDemo(0,false)}
 };
 $('redir').textContent=sp.redirect;
 $('cid').value=LS.get('pms.cid')||'';
@@ -572,7 +579,7 @@ function paintHist(){
     x.onclick=function(){api('PUT','player/play',{uris:['spotify:track:'+h.id]}).then(function(){setTimeout(sp.poll,600)}).catch(function(){sp.say('Léptetéshez Premium és aktív eszköz kell.')})};b.appendChild(x)});
 }
 function onTrack(t){
-  $('like').hidden=false;P.liked=false;paintLike();
+  $('like').hidden=false;P.liked=false;paintLike();$('up').textContent='';setTimeout(upNext,1500);
   api('GET','tracks/contains?ids='+t.id).then(function(a){if(P.track&&P.track.id===t.id){P.liked=!!(a&&a[0]);paintLike()}}).catch(function(){});
   H=H.filter(function(h){return h.id!==t.id});H.unshift({id:t.id,title:t.title,artist:t.artist,img:t.img});H=H.slice(0,15);LS.set('pms.hist',JSON.stringify(H));paintHist();
 }
@@ -619,6 +626,20 @@ $('shBtn').onclick=function(){
     var mf=new Blob([JSON.stringify({name:'Peak Music Setup',short_name:'Peak Music',display:'fullscreen',background_color:'#0b0806',theme_color:'#0b0806',start_url:location.href.split('?')[0],icons:[{src:u,sizes:'512x512',type:'image/png'}]})],{type:'application/manifest+json'});
     var k=document.createElement('link');k.rel='manifest';k.href=URL.createObjectURL(mf);document.head.appendChild(k)}catch(e){}
 })();
+
+var plainTxt='',pk='';
+function plainSync(p){
+  var pb=$('pbox'),on=!lines.length&&plainTxt&&P.track;
+  pb.hidden=!on;$('line').style.visibility=on?'hidden':'';
+  if(!on)return;
+  if(pk!==plainTxt){pk=plainTxt;pb.textContent=plainTxt}
+  pb.scrollTop=(pb.scrollHeight-pb.clientHeight)*Math.min(1,p/(P.track.dur||1));
+}
+function upNext(){
+  if(!sp.tok)return;
+  api('GET','player/queue').then(function(j){var q=j&&j.queue&&j.queue[0];$('up').textContent=q?'Következik: '+q.name+' · '+(((q.artists||[])[0]||{}).name||''):''}).catch(function(){});
+}
+$('sFont').onchange=function(){S.font=this.value;saveS();applyS()};
 
 /* ---------- indulás ---------- */
 applyS();setView(['cover','lyr','lock'].indexOf(S.view)>=0?S.view:'lyr');paintPlay();
