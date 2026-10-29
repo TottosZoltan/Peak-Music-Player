@@ -222,6 +222,14 @@ input[type=color]{width:100%;height:40px;padding:2px;border-radius:10px;border:1
 .toast[hidden]{display:none}
 .who .up{position:static;display:block;font-style:normal;font-size:.72rem;color:var(--muted);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:left}
 .chip button[aria-pressed="true"]{background:var(--ember);color:#1a0d02;font-weight:700}
+.diag{white-space:pre-wrap;font-size:.75rem;color:var(--muted);margin:10px 0;overflow-wrap:anywhere}
+[data-bgm="full"] .blob,[data-bgm="full"] .cover{display:none}
+[data-bgm="full"] .art{inset:0!important;filter:none!important;transform:none!important;opacity:1!important;background-size:cover!important;background-position:center!important}
+[data-hl="label"] .w.v3{background:var(--ember);color:#1a0d02;padding:.02em .24em;border-radius:.16em}
+[data-hl="glow"] .w.v3{text-shadow:0 0 .55em var(--ember),0 0 1.2em var(--ember)}
+[data-hl="none"] .w.v3{color:inherit}
+.bg::before{box-shadow:inset 0 0 var(--gw,90px) 6px var(--c1),inset 0 0 0 1px var(--c1)}
+textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(255,243,226,.06);color:var(--paper);font:inherit;resize:vertical}
 </style>
 
 <div class="bg" aria-hidden="true">
@@ -233,6 +241,7 @@ input[type=color]{width:100%;height:40px;padding:2px;border-radius:10px;border:1
   <header class="top">
     <div class="clock" id="clock"><div class="d" id="clkD"></div><div class="t" id="clkT">--:--</div></div>
     <div class="tools">
+      <button class="ib" id="rstBtn" aria-label="Újraindítás"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button>
       <button class="ib" id="shBtn" aria-label="Sor megosztása"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 9l5-5 5 5M5 14v5h14v-5"/></svg></button>
       <button class="ib" id="fsBtn" aria-label="Teljes képernyő"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       <button class="ib" id="setBtn" aria-label="Beállítások"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
@@ -299,12 +308,16 @@ input[type=color]{width:100%;height:40px;padding:2px;border-radius:10px;border:1
     <label class="chk"><input type="checkbox" id="cWebAuto"> A zene ebben a böngészőben szóljon (automatikus)</label>
     <div class="fld"><label for="sDev"><span>Eszköz neve a Spotifyban</span></label><input type="text" id="sDev" maxlength="30" autocomplete="off"></div>
     <div class="fld"><label for="rVol"><span>Hangerő</span><span id="vVol"></span></label><input type="range" id="rVol" min="0" max="100" step="1"></div>
+    <p class="note" id="volNote" hidden>iPhone-on a hangerőt a készülék oldalsó gombjaival állítsd: az Apple nem engedi weboldalról. Mivel a zene az oldalon szól, a gombok működnek.</p>
     <div class="chips"><span class="chip"><button id="bShuf" aria-pressed="false">Keverés</button></span><span class="chip"><button id="bRep" aria-pressed="false">Ismétlés: ki</button></span></div>
     <button class="btn ghost" id="webBtn">Böngészős lejátszó indítása</button>
+    <button class="btn ghost" id="dispBtn">Második képernyő mód (csak kijelző)</button>
+    <p class="note">Nyisd meg az oldalt egy másik eszközön is ugyanazzal a fiókkal: az egyik játszik, a másik csak mutatja a szöveget és az órát.</p>
     <p class="note">Spotify Premium kell. A Spotify ezt új eszközként látja, a zene itt szól, nem a Spotify appban. iPhone-on korlátozottan működik.</p>
     <h3>Keresés</h3>
     <div class="fld"><input type="text" id="qS" placeholder="Szám vagy előadó…" autocomplete="off"></div>
     <div class="lst" id="qRes"></div>
+    <h3>Sor</h3><div class="lst" id="que"><p class="note">Itt látod a következő számokat.</p></div>
     <h3>Lejátszási listáim</h3><div class="lst" id="pls"><p class="note">Bejelentkezés után itt jelennek meg.</p></div>
     <h3>Eszközök</h3><div class="lst" id="devs"><p class="note">Bejelentkezés után itt választhatsz lejátszót.</p></div>
     <h3>Előzmények</h3><div class="lst" id="hist"><p class="note">Itt jelennek meg a legutóbbi számok.</p></div>
@@ -318,17 +331,20 @@ input[type=color]{width:100%;height:40px;padding:2px;border-radius:10px;border:1
 
   <div class="pane" data-p="bg" hidden>
     <h3>Stílus</h3>
-    <div class="fld"><label for="sBg"><span>Háttér</span></label><select id="sBg"><option value="blob">Folyékony színek</option><option value="art">Elmosott borító</option><option value="grad">Színátmenet</option><option value="oled">Fekete (OLED)</option><option value="img">Saját kép</option></select></div>
+    <div class="fld"><label for="sBg"><span>Háttér</span></label><select id="sBg"><option value="blob">Folyékony színek</option><option value="art">Elmosott borító</option><option value="grad">Színátmenet</option><option value="oled">Fekete (OLED)</option><option value="img">Saját kép</option><option value="full">Teljes borító</option></select></div>
     <div class="fld"><label for="bgFile"><span>Saját kép feltöltése</span></label><input type="file" id="bgFile" accept="image/*"></div>
     <h3>Téma</h3>
     <div class="sw" id="sw" role="group" aria-label="Téma"></div>
     <div class="fld"><label for="col1"><span>Egyedi színek (Téma: Egyedi)</span></label><div class="cols"><input type="color" id="col1"><input type="color" id="col2"></div></div>
+    <label class="chk"><input type="checkbox" id="cAccOn"> Egyedi kiemelő szín</label>
+    <div class="fld"><input type="color" id="cAcc" value="#ff8a2a"></div>
     <h3>Finomhangolás</h3>
     <div class="fld"><label for="rBlur"><span>Elmosás</span><span id="vBlur"></span></label><input type="range" id="rBlur" min="20" max="120" step="2"></div>
     <div class="fld"><label for="rHue"><span>Színárnyalat</span><span id="vHue"></span></label><input type="range" id="rHue" min="0" max="360" step="5"></div>
     <div class="fld"><label for="rSpd"><span>Mozgás sebessége</span><span id="vSpd"></span></label><input type="range" id="rSpd" min="0" max="200" step="10"></div>
     <div class="fld"><label for="rDim"><span>Sötétítés</span><span id="vDim"></span></label><input type="range" id="rDim" min="0" max="70" step="5"></div>
     <div class="fld"><label for="rGlow"><span>Fényszegély</span><span id="vGlow"></span></label><input type="range" id="rGlow" min="0" max="100" step="5"></div>
+    <div class="fld"><label for="rGw"><span>Fényszegély szélessége</span><span id="vGw"></span></label><input type="range" id="rGw" min="20" max="220" step="10"></div>
   </div>
 
   <div class="pane" data-p="ora" hidden>
@@ -349,10 +365,12 @@ input[type=color]{width:100%;height:40px;padding:2px;border-radius:10px;border:1
     <div class="fld"><label for="sFont"><span>Betűtípus</span></label><select id="sFont"><option value="">Alap</option><option value="serif">Klasszikus</option><option value="mono">Gép</option></select></div>
     <div class="fld"><label for="sAl"><span>Igazítás</span></label><select id="sAl"><option value="c">Középre</option><option value="l">Balra</option></select></div>
     <div class="fld"><label for="sAn"><span>Szavak animációja</span></label><select id="sAn"><option value="pop">Felugrik</option><option value="fade">Halványodik</option><option value="slide">Becsúszik</option><option value="none">Nincs</option></select></div>
+    <div class="fld"><label for="sHl"><span>Kiemelt szó stílusa</span></label><select id="sHl"><option value="color">Szín</option><option value="label">Címke (festett doboz)</option><option value="glow">Ragyogás</option><option value="none">Nincs</option></select></div>
     <div class="fld"><label for="sLc"><span>Szín</span></label><select id="sLc"><option value="paper">Fehér</option><option value="accent">Kiemelő szín</option><option value="custom">Egyedi</option></select><input type="color" id="lCus"></div>
     <label class="chk"><input type="checkbox" id="cCaps"> NAGYBETŰS szöveg</label>
     <label class="chk"><input type="checkbox" id="cKin"> Mozgó betűs dalszöveg</label>
     <label class="chk"><input type="checkbox" id="cEmo"> Emoji matricák</label>
+    <div class="fld"><label for="emoMap"><span>Saját emoji szótár (szó=emoji, soronként)</span></label><textarea id="emoMap" rows="3" placeholder="kávé=☕"></textarea></div>
     <label class="chk"><input type="checkbox" id="cTr"> Magyar fordítás a sor alatt</label>
     <h3>Borító</h3>
     <div class="fld"><label for="sShape"><span>Forma</span></label><select id="sShape"><option value="round">Lekerekített</option><option value="sq">Szögletes</option><option value="circle">Kör</option><option value="vinyl">Forgó lemez</option></select></div>
@@ -371,6 +389,11 @@ input[type=color]{width:100%;height:40px;padding:2px;border-radius:10px;border:1
   <div class="pane" data-p="egyeb" hidden>
     <label class="chk"><input type="checkbox" id="cMs"> Zárképernyős kártya (automatikus)</label>
     <p class="note">A böngészős lejátszóval együtt magától bekapcsol: a zárolt képernyőn az aktuális sor látszik a lejátszó-kártyán.</p>
+    <h3>Hibaelhárítás</h3>
+    <button class="btn" id="rstSoft">Újraindítás</button> <button class="btn ghost" id="rstHard">Teljes visszaállítás</button>
+    <p class="note">Az újraindítás megtartja a belépést és a beállításokat, csak újratölti az oldalt és a lejátszót. A teljes visszaállítás mindent töröl ezen az eszközön: belépést, beállításokat, sémákat.</p>
+    <button class="btn ghost" id="diagBtn">Diagnosztika</button><pre class="diag" id="diagOut"></pre>
+    <h3>Egyéb</h3>
     <label class="chk"><input type="checkbox" id="cAuto"> Vezérlők automatikus elrejtése</label>
     <div class="fld"><label for="sSleep"><span>Elalvás időzítő</span></label><select id="sSleep"><option value="0">Ki</option><option value="15">15 perc</option><option value="30">30 perc</option><option value="60">60 perc</option></select></div>
   </div>
@@ -385,7 +408,7 @@ var $=function(id){return document.getElementById(id)};
 var LS={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 
 /* ---------- beállítások ---------- */
-var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto',kar:false,tr:false,font:'',shape:'round',csz:100,anim:'pop',al:'c',lcol:'paper',lcus:'#ffffff',caps:false,webAuto:true,vol:80,dev:'Peak Music Setup',msAuto:true,bgm:'blob',spd:100,dim:0,glow:28,col1:'#ff7a1a',col2:'#3a1d6e',cs:100,cw:'',ccol:'paper',ccus:'#ffffff',cpos:'top',c24:true,csec:false,cdate:true};
+var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto',kar:false,tr:false,font:'',shape:'round',csz:100,anim:'pop',al:'c',lcol:'paper',lcus:'#ffffff',caps:false,webAuto:true,vol:80,hl:'color',gw:90,acc:'',emap:'',dev:'Peak Music Setup',msAuto:true,bgm:'blob',spd:100,dim:0,glow:28,col1:'#ff7a1a',col2:'#3a1d6e',cs:100,cw:'',ccol:'paper',ccus:'#ffffff',cpos:'top',c24:true,csec:false,cdate:true};
 try{var sv=JSON.parse(LS.get('pms.settings')||'{}');for(var k in sv)if(k in S)S[k]=sv[k]}catch(e){}
 function saveS(){LS.set('pms.settings',JSON.stringify(S))}
 function applyS(){
@@ -549,6 +572,7 @@ document.addEventListener('keydown',function(e){
   if(e.code==='Space'){e.preventDefault();$('play').click()}
   else if(e.key==='ArrowRight')nextTrack();else if(e.key==='ArrowLeft')prevTrack();
   else if(e.key==='l'||e.key==='L')setView(S.view==='lyr'?'cover':'lyr');
+  else if((e.key==='ArrowUp'||e.key==='ArrowDown')&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)){volBy(e.key==='ArrowUp'?5:-5)}
   else if(e.key==='k'||e.key==='K')setView(S.view==='kar'?'lyr':'kar');
   else if(e.key==='f'||e.key==='F')$('fsBtn').click();
 });
@@ -653,7 +677,7 @@ var THEME_NAMES={auto:'Borítóból',fire:'Tűz',ice:'Jég',neon:'Neon',mono:'Mo
 function paintTheme(pal){
   var th=S.theme==='custom'?{c:[S.col1,S.col2,'#120a06'],a:S.col1}:THEMES[S.theme],c=th?th.c:pal,r=document.documentElement.style;
   r.setProperty('--c1',c[0]);r.setProperty('--c2',c[1]);r.setProperty('--c3',c[2]);
-  r.setProperty('--ember',th?th.a:'color-mix(in srgb,'+c[0]+' 70%,#fff)');
+  r.setProperty('--ember',S.acc||(th?th.a:'color-mix(in srgb,'+c[0]+' 70%,#fff)'));
 }
 var sw=$('sw');
 Object.keys(THEME_NAMES).forEach(function(k){
@@ -708,13 +732,13 @@ function paintHist(){
     x.onclick=function(){api('PUT','player/play',{uris:['spotify:track:'+h.id]}).then(function(){setTimeout(sp.poll,600)}).catch(function(){sp.say('Léptetéshez Premium és aktív eszköz kell.')})};b.appendChild(x)});
 }
 function onTrack(t){
-  $('like').hidden=false;P.liked=false;paintLike();if(!webId)$('up').textContent='';setTimeout(upNext,1500);
+  $('like').hidden=false;P.liked=false;paintLike();if(!webId)$('up').textContent='';setTimeout(function(){upNext();loadQueue()},1500);
   api('GET','tracks/contains?ids='+t.id).then(function(a){if(P.track&&P.track.id===t.id){P.liked=!!(a&&a[0]);paintLike()}}).catch(function(){});
   H=H.filter(function(h){return h.id!==t.id});H.unshift({id:t.id,title:t.title,artist:t.artist,img:t.img});H=H.slice(0,15);LS.set('pms.hist',JSON.stringify(H));paintHist();
 }
 paintHist();
 function devs(){
-  var b=$('devs');if(!sp.tok)return;sdkLoad();loadLib();
+  var b=$('devs');if(!sp.tok)return;sdkLoad();loadLib();loadQueue();
   api('GET','player/devices').then(function(j){b.innerHTML='';((j&&j.devices)||[]).forEach(function(d){var x=document.createElement('button');x.textContent=d.name+' · '+d.type;if(d.is_active)x.className='on';
     x.onclick=function(){api('PUT','player',{device_ids:[d.id],play:true}).then(function(){setTimeout(sp.poll,700);setTimeout(devs,1000)}).catch(function(){sp.say('Az átváltáshoz Premium kell.')})};b.appendChild(x)});
     if(!b.children.length)b.textContent='Nincs elérhető eszköz. Nyisd meg a Spotifyt valahol.'}).catch(function(){});
@@ -855,7 +879,7 @@ function sdkLoad(){
   var s=document.createElement('script');s.src='https://sdk.scdn.co/spotify-player.js';s.async=true;s.onerror=function(){sdkL=false;webErr('A Spotify lejátszó nem töltődött be. Kapcsold ki a reklámblokkolót, és ellenőrizd a kapcsolatot.')};document.head.appendChild(s);
 }
 var toT;
-function toast(m){var t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toT);toT=setTimeout(function(){t.hidden=true},6500)}
+function toast(m,ms){var t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toT);toT=setTimeout(function(){t.hidden=true},ms||6500)}
 function webErr(m){sp.say(m);toast(m)}
 function devLbl(){if(P.mode==='spotify')$('srcLbl').textContent=webId?'Spotify · ez a böngésző':'Spotify · másik eszköz'}
 function webStop(){
@@ -968,7 +992,7 @@ function applyS3(){
   r.setProperty('--cz',S.csz/100);r.setProperty('--lcol',S.lcol==='accent'?'var(--ember)':S.lcol==='custom'?S.lcus:'var(--paper)');
   $('vCz').textContent=S.csz+'%';
   [['rCz','csz'],['sShape','shape'],['sAn','anim'],['sAl','al'],['sLc','lcol'],['lCus','lcus'],['sDev','dev']].forEach(function(q){$(q[0]).value=S[q[1]]});
-  $('cCaps').checked=S.caps;$('rVol').value=S.vol;$('vVol').textContent=S.vol+'%';$('cWebAuto').checked=S.webAuto;
+  $('cCaps').checked=S.caps;h.dataset.hl=S.hl;r.setProperty('--gw',S.gw+'px');$('sHl').value=S.hl;$('rGw').value=S.gw;$('vGw').textContent=S.gw+'px';$('cAccOn').checked=!!S.acc;if(S.acc)$('cAcc').value=S.acc;$('emoMap').value=S.emap;if(P.track)paintTheme(P.track.pal);$('rVol').value=S.vol;$('vVol').textContent=S.vol+'%';$('cWebAuto').checked=S.webAuto;
 }
 [['rCz','csz',1],['sShape','shape'],['sAn','anim'],['sAl','al'],['sLc','lcol'],['lCus','lcus'],['cCaps','caps',2],['cWebAuto','webAuto',2]].forEach(function(q){
   var e=$(q[0]);e.addEventListener(q[2]===2?'change':'input',function(){
@@ -986,12 +1010,15 @@ function tab(k){
 tab(LS.get('pms.tab')||'zene');
 
 var PRE={
- 'Alap':{bgm:'blob',theme:'auto',spd:100,dim:0,glow:28,hue:0,blur:60,fs:100,cs:100,cw:'',ccol:'paper',ccus:'#ffffff',cpos:'top',c24:true,csec:false,cdate:true,clk:true,col1:'#ff7a1a',col2:'#3a1d6e',shape:'round',csz:100,anim:'pop',font:'',al:'c',lcol:'paper',lcus:'#ffffff',caps:false,kin:true,emo:true},
+ 'Alap':{bgm:'blob',theme:'auto',spd:100,dim:0,glow:28,hue:0,blur:60,fs:100,cs:100,cw:'',ccol:'paper',ccus:'#ffffff',cpos:'top',c24:true,csec:false,cdate:true,clk:true,col1:'#ff7a1a',col2:'#3a1d6e',shape:'round',csz:100,anim:'pop',font:'',al:'c',lcol:'paper',lcus:'#ffffff',caps:false,kin:true,emo:true,hl:'color',gw:90,acc:''},
  'Koncert':{theme:'neon',spd:160,glow:70,blur:40,caps:true,anim:'pop'},
  'Retró':{bgm:'grad',theme:'fire',spd:60,glow:20,font:'serif',shape:'vinyl',anim:'fade',ccol:'accent'},
  'Éjszaka':{bgm:'oled',theme:'mono',dim:30,glow:0,spd:0,cw:'200',cs:120,emo:false},
  'Minimál':{bgm:'art',spd:40,dim:20,glow:0,shape:'sq',font:'mono',anim:'none',al:'l'},
- 'Jég':{theme:'ice',spd:80,glow:45,font:'serif',shape:'circle',anim:'slide'}
+ 'Jég':{theme:'ice',spd:80,glow:45,font:'serif',shape:'circle',anim:'slide'},
+ 'Stúdió':{bgm:'oled',theme:'fire',glow:80,gw:150,spd:0,hl:'label'},
+ 'Galéria':{bgm:'full',dim:40,glow:0,hl:'glow',anim:'fade'},
+ 'Címke':{bgm:'oled',theme:'neon',glow:50,gw:120,hl:'label',caps:true}
 };
 var PKEYS=Object.keys(PRE['Alap']),UP={};
 try{UP=JSON.parse(LS.get('pms.presets')||'{}')}catch(e){}
@@ -1035,6 +1062,78 @@ function loadLib(){
   if(plsDone||!sp.tok)return;plsDone=true;
   api('GET','playlists?limit=20').then(function(j){listItems($('pls'),(j&&j.items)||[],function(t){playUri({context_uri:t.uri})})}).catch(function(){plsDone=false;$('pls').textContent='Lépj ki, majd be újra a listákhoz.'});
 }
+
+/* ---------- hangerő, újraindítás, helyreállítás, diagnosztika ---------- */
+var IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+if(IOS){$('rVol').disabled=true;$('volNote').hidden=false}
+function setVol(v){S.vol=Math.max(0,Math.min(100,Math.round(v)));saveS();applyS3();if(webP)try{webP.setVolume(S.vol/100)}catch(e){}}
+function volBy(d){setVol(S.vol+d);toast('Hangerő: '+S.vol+'%',1200)}
+var vg=null;
+stg.addEventListener('pointerdown',function(e){
+  if(IOS||S.view==='kar')return;var b=stg.getBoundingClientRect();
+  if(e.clientX>b.right-b.width*.14)vg={y:e.clientY,v:S.vol,h:b.height};
+});
+stg.addEventListener('pointermove',function(e){
+  if(!vg)return;var v=Math.round(Math.max(0,Math.min(100,vg.v+(vg.y-e.clientY)/vg.h*120)));
+  if(v!==S.vol){setVol(v);toast('Hangerő: '+v+'%',1200)}
+});
+['pointerup','pointercancel'].forEach(function(n){stg.addEventListener(n,function(){vg=null})});
+
+function softReset(){try{if(webP)webP.disconnect()}catch(e){}try{sessionStorage.clear()}catch(e){}location.reload()}
+function hardReset(){
+  if(!confirm('Biztosan törlöd a belépést, a beállításokat és a sémákat ezen az eszközön?'))return;
+  try{if(webP)webP.disconnect()}catch(e){}
+  try{Object.keys(localStorage).forEach(function(k){if(k.indexOf('pms')===0)localStorage.removeItem(k)})}catch(e){}
+  try{sessionStorage.clear()}catch(e){}
+  var go=function(){location.replace(location.pathname)};
+  try{if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister()});go()}).catch(go);else go()}catch(e){go()}
+}
+$('rstBtn').onclick=softReset;$('rstSoft').onclick=softReset;$('rstHard').onclick=hardReset;
+
+var recT=0;
+function recover(){
+  if(!sp.tok||Date.now()-recT<3000)return;recT=Date.now();sp.poll();if(!S.webAuto)return;
+  if(webP){webP.connect().then(function(ok){if(!ok){webStop();setTimeout(webAuto,500)}}).catch(function(){webStop();setTimeout(webAuto,500)})}
+  else webAuto();
+}
+document.addEventListener('visibilitychange',function(){if(!document.hidden)recover()});
+window.addEventListener('pageshow',function(e){if(e.persisted)recover()});
+window.addEventListener('online',recover);
+window.addEventListener('error',function(e){toast('Hiba: '+((e&&e.message)||'ismeretlen')+'. Próbáld a jobb felső újraindítás gombot.',9000)});
+
+function loadQueue(){
+  if(!sp.tok)return;
+  api('GET','player/queue').then(function(j){listItems($('que'),((j&&j.queue)||[]).slice(0,8),function(t){playUri({uris:[t.uri]})})}).catch(function(){});
+}
+function diag(){
+  var o=$('diagOut'),L=[];
+  function add(k,v){L.push(k+': '+v);o.textContent=L.join('\n')}
+  add('https',window.isSecureContext?'igen':'NEM (a hanghoz kell)');
+  add('Bejelentkezve',sp.tok?'igen':'nem');
+  add('Lejátszó szkript',sdkOk?'betöltve':'nincs betöltve');
+  add('Böngészős lejátszó',webId?'kész ('+(S.dev||'')+')':'nem kész');
+  add('Hangerő',IOS?'csak a készülék gombjaival':'oldalról is állítható');
+  add('Kijelző ébren tartása',(wl||nsOk)?'aktív':'nem aktív');
+  add('Böngésző',navigator.userAgent.slice(0,70));
+  if(sp.tok)api('GET','https://api.spotify.com/v1/me').then(function(j){add('Fiók típusa',(j&&j.product)||'ismeretlen')}).catch(function(){add('Fiók típusa','nem lekérhető (lépj ki, majd be)')});
+}
+$('diagBtn').onclick=diag;
+
+/* ---------- stílus-újdonságok ---------- */
+[['rGw','gw',1],['sHl','hl']].forEach(function(q){
+  var e=$(q[0]);e.addEventListener('input',function(){S[q[1]]=q[2]===1?+e.value:e.value;saveS();applyS3()});
+});
+$('cAccOn').addEventListener('change',function(){S.acc=this.checked?$('cAcc').value:'';saveS();applyS3()});
+$('cAcc').addEventListener('input',function(){if($('cAccOn').checked){S.acc=this.value;saveS();applyS3()}});
+function applyEmo(){
+  (S.emap||'').split('\n').forEach(function(l){var k=l.split('=');if(k.length>1){var w=clean(k[0].trim().toLowerCase()),e=k.slice(1).join('=').trim();if(w&&e)EMO[w]=e}});
+}
+$('emoMap').addEventListener('change',function(){S.emap=this.value;saveS();applyEmo();lastIdx=-2});
+applyEmo();
+$('dispBtn').onclick=function(){
+  S.webAuto=false;saveS();if(webP)webStop();applyS3();setView('lock');$('panel').classList.remove('open');
+  toast('Második képernyő mód: csak a szöveget mutatja, a zenét nem játssza le.',4500);
+};
 
 /* ---------- indulás ---------- */
 applyS();setView(['cover','lyr','kar','lock'].indexOf(S.view)>=0?S.view:'lyr');paintPlay();
