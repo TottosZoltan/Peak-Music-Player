@@ -294,11 +294,46 @@ textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--
 [data-night="1"] .lock .bg .art,[data-night="1"] .lock .bg .blob,[data-night="1"] .lock .bg::after,[data-night="1"] .lock .bg::before{display:none}
 [data-night="1"] .lock .app{filter:brightness(.7)}
 .mini{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(56px + env(safe-area-inset-bottom,0px));z-index:3;display:none;align-items:center;gap:16px;opacity:0;pointer-events:none;transition:opacity .5s}
-[data-mini="1"] .lock .mini{display:flex}
-.lock.idle .mini{opacity:1;pointer-events:auto}
+[data-mini="1"] .mini{display:flex}
+.idle .mini{opacity:1;pointer-events:auto}
 .mb{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(120% 140% at 28% 16%,rgba(255,255,255,.4),rgba(255,255,255,.1) 60%);border:1px solid rgba(255,255,255,.35);box-shadow:inset 0 .1em .15em rgba(255,255,255,.5),0 8px 24px rgba(0,0,0,.3);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .mb.big{width:84px;height:84px}
 .mb svg{width:44%;height:44%;fill:var(--paper)}
+
+/* ---------- telefonos elrendezés-javítások (átfedések ellen) ---------- */
+.wk{bottom:calc(var(--dockh,130px) + 56px + env(safe-area-inset-bottom,0px))}
+#unlock{bottom:calc(var(--dockh,130px) + 104px + env(safe-area-inset-bottom,0px))}
+.mini{bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+[data-mini="1"] .np{bottom:calc(116px + env(safe-area-inset-bottom,0px))}
+.line{font-size:calc(var(--fs) * clamp(2.2rem,min(9vw,11vh),7rem))}
+@media (max-height:720px){.lock .next{display:none}}
+@media not all and (orientation:landscape) and (max-height:520px){
+  .lock .clock{top:calc(max(14px,env(safe-area-inset-top,0px)) + 58px)}
+  [data-bub="1"] .lock .clock{top:calc(max(14px,env(safe-area-inset-top,0px)) + 58px)}
+  [data-bub="1"][data-clp="mid"] .lock .clock{top:max(16vh,calc(max(14px,env(safe-area-inset-top,0px)) + 58px))}
+  [data-bub="1"] .lock .lyrics{padding-top:calc(var(--ck)*1.98 + 3.4rem)}
+  [data-bub="1"][data-clp="mid"] .lock .lyrics{padding-top:calc(max(16vh,70px) + var(--ck)*1.98 - 1rem)}
+  [data-bub="1"] .lock .line{font-size:calc(var(--fs)*clamp(1.4rem,min(8vw,5.2vh),4.6rem))}
+}
+@media (orientation:landscape) and (max-height:520px){
+  .next{display:none}
+  .mini{bottom:calc(10px + env(safe-area-inset-bottom,0px));gap:12px}
+  .mb{width:46px;height:46px}.mb.big{width:62px;height:62px}
+  [data-mini="1"] .np{display:none}
+}
+
+.wk,#unlock{animation:wkfade .5s 9s forwards}
+@keyframes wkfade{to{opacity:0;visibility:hidden}}
+@media (max-height:700px){:root{--ck:calc(clamp(4.5rem,min(44vw,16vh),18rem)*var(--cs,1))}}
+@media (orientation:landscape) and (max-height:520px){
+  [data-bub="1"] .lock .clock .t{font-size:calc(min(24vh,18vw)*var(--cs,1))}
+  [data-bub="1"] .lock .clock .d{margin-bottom:.3rem;padding:.2em .9em .25em}
+  [data-bub="1"] .lock .lyrics,[data-bub="1"][data-clp="mid"] .lock .lyrics{padding-top:36vh}
+  [data-bub="1"] .lock .line{font-size:calc(var(--fs)*clamp(1.1rem,6.5vh,2.4rem))}
+}
+html,body{touch-action:none;overscroll-behavior:none}.panel,#pbox,textarea,select{touch-action:pan-y}
+.hello{overflow:auto;align-items:start}.hello .card{margin:auto}
+@media (orientation:landscape) and (max-height:520px){.hello h1{font-size:2.2rem}.hello .card{gap:8px}.hello p{font-size:.85rem}}
 </style>
 
 <div class="bg" aria-hidden="true">
@@ -485,8 +520,8 @@ var $=function(id){return document.getElementById(id)};
 var LS={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 
 /* ---------- beállítások ---------- */
-var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto',kar:false,tr:false,font:'',shape:'round',csz:100,anim:'pop',al:'c',lcol:'paper',lcus:'#ffffff',caps:false,webAuto:true,vol:80,hl:'color',gw:90,acc:'',emap:'',dev:'Peak Music Setup',msAuto:true,bgm:'blob',spd:100,dim:0,glow:28,col1:'#ff7a1a',col2:'#3a1d6e',cs:100,cw:'',ccol:'paper',ccus:'#ffffff',cpos:'top',c24:true,csec:false,cdate:true,bub:true,bon:true,ball:false,bn:16,bsz:100,bsp:100,bop:100,bpl:false,bbeat:true,bpop:true,bsnd:false,btilt:false,wbub:true,dpill:true,ccov:false,wb:false,mini:true,night:false,nf:22,nt:6};
-try{var sv=JSON.parse(LS.get('pms.settings')||'{}');for(var k in sv)if(k in S)S[k]=sv[k]}catch(e){}
+var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto',kar:false,tr:false,font:'',shape:'round',csz:100,anim:'pop',al:'c',lcol:'paper',lcus:'#ffffff',caps:false,webAuto:true,vol:80,hl:'color',gw:90,acc:'',emap:'',dev:'Peak Music Setup',msAuto:true,bgm:'blob',spd:100,dim:0,glow:28,col1:'#ff7a1a',col2:'#3a1d6e',cs:100,cw:'',ccol:'paper',ccus:'#ffffff',cpos:'top',c24:true,csec:false,cdate:true,bv:0,tapw:false,bub:false,bon:false,ball:false,bn:16,bsz:100,bsp:100,bop:100,bpl:false,bbeat:true,bpop:true,bsnd:false,btilt:false,wbub:false,dpill:false,ccov:false,wb:false,mini:true,night:false,nf:22,nt:6};
+try{var sv=JSON.parse(LS.get('pms.settings')||'{}');for(var k in sv)if(k in S)S[k]=sv[k];if(S.bv!==2){S.bub=false;S.bon=false;S.ball=false;S.wbub=false;S.dpill=false;S.ccov=false;S.wb=false;S.mini=true;S.night=false;S.bv=2}}catch(e){}
 function saveS(){LS.set('pms.settings',JSON.stringify(S))}
 function applyS(){
   var r=document.documentElement.style;
@@ -775,7 +810,14 @@ function poke(){
   document.body.classList.remove('idle');clearTimeout(idleT);
   if(S.auto||S.view==='lock')idleT=setTimeout(function(){if(P.playing&&!$('panel').classList.contains('open'))document.body.classList.add('idle')},4000);
 }
-['pointermove','pointerdown','keydown'].forEach(function(n){document.addEventListener(n,poke,{passive:true})});
+var sw0=null;
+['pointermove','pointerdown','keydown'].forEach(function(n){document.addEventListener(n,function(e){
+  var idle=document.body.classList.contains('idle'),touch=e.pointerType&&e.pointerType!=='mouse';
+  if(!idle||!touch||S.tapw||n==='keydown'){poke();return}
+  if(n==='pointerdown'&&e.clientY>innerHeight*.65)sw0={y:e.clientY};
+  else if(n==='pointermove'&&sw0&&sw0.y-e.clientY>36){sw0=null;poke()}
+},{passive:true})});
+['pointerup','pointercancel'].forEach(function(n){document.addEventListener(n,function(){sw0=null},{passive:true})});
 $('tLock').onclick=function(){setView('lock')};
 
 var g0=null,lastTap=0,stg=$('stage');
@@ -1252,7 +1294,7 @@ setInterval(function(){
 
 /* ---------- buborék modul: minden személyre szabható ---------- */
 var BBX=null,BBsig='',BD=[
- ['bon','c','Lebegő buborékok'],['ball','c','Buborékok minden nézetben (nem csak az Óra nézetben)'],
+ ['tapw','c','Koppintásra is előjön az alsó sáv (különben csak alulról felhúzva)'],['bub','c','Buborékos óra (Óra nézet)'],['bon','c','Lebegő buborékok'],['ball','c','Buborékok minden nézetben (nem csak az Óra nézetben)'],
  ['bn','n','Buborékok száma',4,40,1,''],['bsz','n','Méret',40,200,10,'%'],['bsp','n','Sebesség',30,250,10,'%'],['bop','n','Átlátszatlanság',20,100,5,'%'],
  ['bpl','c','Csak lejátszás közben mozogjanak'],['bbeat','c','Sorváltásra pulzáljanak'],['bpop','c','Koppintásra kipukkannak'],['bsnd','c','Pukkanás hang'],['btilt','c','Telefon döntésére sodródjanak'],
  ['wbub','c','Szavak üveg-buborékban'],['dpill','c','Dátum pirulában'],['ccov','c','Óra színe a borítóból'],['wb','c','Szavak pattogása sorváltáskor'],
@@ -1308,7 +1350,7 @@ var slT=0;$('sSleep').addEventListener('change',function(){clearTimeout(slT);var
 /* export / import / alapérték */
 $('bxExp').onclick=function(){var c=btoa(unescape(encodeURIComponent(JSON.stringify(S))));$('bxCode').value=c;try{navigator.clipboard.writeText(c)}catch(e){}toast('Kód kész. Másold át másik eszközre.',3000)};
 $('bxImp').onclick=function(){try{var o=JSON.parse(decodeURIComponent(escape(atob($('bxCode').value.trim()))));for(var k in o)if(k in S&&k!=='view')S[k]=o[k];saveS();applyS();toast('Beállítások betöltve.',2500)}catch(e){toast('Érvénytelen kód.',3000)}};
-$('bxRst').onclick=function(){var d={bon:true,ball:false,bn:16,bsz:100,bsp:100,bop:100,bpl:false,bbeat:true,bpop:true,bsnd:false,btilt:false,wbub:true,dpill:true,ccov:false,wb:false,mini:true,night:false,nf:22,nt:6,bub:true};for(var k in d)S[k]=d[k];saveS();applyS();toast('Buborék alapértékek visszaállítva.',2500)};
+$('bxRst').onclick=function(){var d={bon:false,ball:false,bn:16,bsz:100,bsp:100,bop:100,bpl:false,bbeat:true,bpop:true,bsnd:false,btilt:false,wbub:false,dpill:false,ccov:false,wb:false,mini:true,night:false,nf:22,nt:6,bub:false};for(var k in d)S[k]=d[k];saveS();applyS();toast('Buborék alapértékek visszaállítva.',2500)};
 
 /* ---------- PWA ---------- */
 var pwaEv=null,STANDALONE=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
@@ -1318,6 +1360,8 @@ window.addEventListener('appinstalled',function(){pwaEv=null;$('pwaBtn').hidden=
 $('pwaNote').textContent=STANDALONE?'Már telepített appként fut.':IOS?'iPhone-on: Safari, Megosztás gomb, majd "Főképernyőre". Az app külön tárhelyet kap, ezért ott újra be kell lépned a Spotifyba.':'Telepítve saját appként fut: főképernyős ikon, böngészősáv nélkül.';
 $('pwaBtn').onclick=function(){if(pwaEv){pwaEv.prompt();pwaEv=null;$('pwaBtn').hidden=true}};
 
+/* dokk magasság (a lebegő gombok ehhez igazodnak) */
+(function(){var d=document.querySelector('.dock');function m(){document.documentElement.style.setProperty('--dockh',d.offsetHeight+'px')}m();if(window.ResizeObserver)new ResizeObserver(m).observe(d);window.addEventListener('resize',m)})();
 /* ---------- indulás ---------- */
 applyS();setView(['cover','lyr','kar','lock'].indexOf(S.view)>=0?S.view:'lyr');paintPlay();
 loadDemo(0,!(LS.get('pms.tok')||location.search.indexOf('code=')>=0));
