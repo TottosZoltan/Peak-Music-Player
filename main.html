@@ -1,10 +1,14 @@
 <!doctype html>
-<html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Peak Music">
+<meta name="theme-color" content="#0b0806"></head><body>
 <title>Peak Music Setup</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,500;12..96,800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,500;12..96,800&family=Instrument+Serif:ital@0;1&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 /* Layout: egész képernyős színpad. Fent óra, középen borító vagy mozgó dalszöveg, alul lejátszósáv. Dark-first, egyetlen vizuális világ. */
 :root{
@@ -231,6 +235,70 @@ input[type=color]{width:100%;height:40px;padding:2px;border-radius:10px;border:1
 .bg::before{box-shadow:inset 0 0 var(--gw,90px) 6px var(--c1),inset 0 0 0 1px var(--c1)}
 textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(255,243,226,.06);color:var(--paper);font:inherit;resize:vertical}
 #unlock{bottom:calc(100px + env(safe-area-inset-bottom));background:var(--ember);color:#1a0d02;font-weight:700;border-color:transparent}
+
+/* ---------- buborékos stílus (Óra nézet) ---------- */
+:root{--bubble:'Fredoka','Baloo 2',ui-rounded,'Arial Rounded MT Bold',Nunito,system-ui,sans-serif;--ck:calc(clamp(5rem,min(46vw,21vh),18rem)*var(--cs,1))}
+.bubbles{position:absolute;inset:0;z-index:1;overflow:hidden;display:none;pointer-events:none}
+[data-bon="1"] .lock .bubbles,[data-bon="1"][data-ball="1"] .bubbles{display:block}
+.bubbles i{position:absolute;bottom:-25vmax;left:var(--x);width:var(--s);height:var(--s);border-radius:50%;
+  background:radial-gradient(circle at 30% 26%,rgba(255,255,255,.8) 0 6%,rgba(255,255,255,.14) 17%,transparent 40%),radial-gradient(circle at 50% 50%,transparent 56%,rgba(255,255,255,.14) 72%,rgba(255,255,255,.4) 100%);
+  box-shadow:inset 0 0 .7em rgba(255,255,255,.22),0 0 2.2em color-mix(in srgb,var(--c1) 28%,transparent);
+  animation:rise var(--t) linear var(--dl) infinite}
+@keyframes rise{0%{transform:translate(0,0) scale(.9);opacity:0}10%{opacity:.9}85%{opacity:.8}100%{transform:translate(var(--sw),-140vh) scale(1.1);opacity:0}}
+[data-still="1"] .bubbles i{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.bubbles{display:none!important}}
+
+[data-bub="1"] .lock .clock{top:calc(env(safe-area-inset-top,0px) + 5vh)}
+[data-bub="1"] .lock .clock .d{display:inline-block;margin-bottom:.9rem}
+[data-dpill="1"][data-bub="1"] .lock .clock .d{padding:.4em 1.2em .45em;border-radius:999px;font-family:var(--bubble);font-weight:600;letter-spacing:.03em;text-transform:none;color:var(--paper);
+  background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,.08));border:1px solid rgba(255,255,255,.35);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 8px 24px rgba(0,0,0,.25);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+[data-bub="1"] .lock .clock .d[hidden]{display:none}
+[data-bub="1"] .lock .clock .t{display:flex;flex-direction:column;align-items:center;margin:0;font-family:var(--bubble);font-size:var(--ck);font-weight:var(--cw,700);line-height:.9;letter-spacing:-.01em}
+[data-bub="1"] .lock .clock .t>span{display:block;padding:.04em .1em;
+  background:linear-gradient(180deg,#fff 0%,var(--ccol,var(--paper)) 36%,color-mix(in srgb,var(--ccol,var(--paper)) 70%,var(--c1)) 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+  filter:drop-shadow(0 .035em 0 color-mix(in srgb,var(--c2) 75%,#000)) drop-shadow(0 .1em .12em rgba(0,0,0,.35)) drop-shadow(0 0 .25em color-mix(in srgb,var(--c1) 45%,transparent))}
+[data-bub="1"] .lock .clock .t>.sep{display:none}
+[data-bub="1"] .lock.idle .app{filter:brightness(.85)}
+[data-bub="1"] .lock .clock .t>.ss,[data-bub="1"] .lock .clock .t>.dp{font-size:.28em;line-height:1.1;margin-top:.2em}
+[data-bub="1"] .lock .lyrics{padding-top:calc(5vh + var(--ck)*1.72 + 1.2rem)}
+[data-bub="1"] .lock .line{font-size:calc(var(--fs)*clamp(1.8rem,min(8vw,6vh),4.6rem));line-height:1.02;gap:.14em}
+[data-wbub="1"] .lock .w{padding:.08em .42em .14em;border-radius:999px;font-family:var(--bubble);font-style:normal;font-weight:600;letter-spacing:0;
+  background:radial-gradient(120% 140% at 28% 16%,rgba(255,255,255,.36),rgba(255,255,255,.1) 55%,rgba(255,255,255,.05));
+  border:1px solid rgba(255,255,255,.32);
+  box-shadow:inset 0 .08em .12em rgba(255,255,255,.5),inset 0 -.1em .2em rgba(0,0,0,.18),0 .25em .8em rgba(0,0,0,.25)}
+[data-wbub="1"][data-hl="label"] .lock .w.v3{background:var(--ember);border-color:transparent}
+[data-bub="1"][data-clp="mid"] .lock .clock{top:16vh}
+[data-bub="1"][data-clp="mid"] .lock .lyrics{padding-top:calc(16vh + var(--ck)*1.72 + 1.2rem)}
+[data-bub="1"][data-clp="bot"] .lock .clock{top:auto;bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+[data-bub="1"][data-clp="bot"] .lock .lyrics{padding-top:0;padding-bottom:calc(var(--ck)*1.72 + 8rem)}
+@media (orientation:landscape) and (max-height:520px){
+  [data-bub="1"] .lock .clock{top:3vh}
+  [data-bub="1"] .lock .clock .t{flex-direction:row;align-items:baseline;justify-content:center;font-size:calc(min(30vh,22vw)*var(--cs,1))}
+  [data-bub="1"] .lock .clock .t>.sep{display:inline-block}
+  [data-bub="1"] .lock .lyrics,[data-bub="1"][data-clp="mid"] .lock .lyrics{padding-top:40vh;padding-bottom:0}
+  [data-bub="1"] .lock .line{font-size:calc(var(--fs)*clamp(1.4rem,8vh,3.2rem))}
+}
+
+/* ---------- buborék-beállítások hatásai ---------- */
+.bubbles{opacity:var(--bop,1);transform:translateX(var(--tx,0px));transition:transform 1.2s ease-out,scale .5s,filter .6s}
+.bubbles.beat{scale:1.07;filter:brightness(1.5)}
+[data-bpl="1"][data-pl="0"] .bubbles i{animation-play-state:paused}
+.burst{position:fixed;z-index:20;pointer-events:none;border-radius:50%;border:3px solid rgba(255,255,255,.85);box-shadow:0 0 18px rgba(255,255,255,.6);transform:translate(-50%,-50%);animation:bst .45s ease-out forwards}
+@keyframes bst{from{width:20px;height:20px;opacity:1}to{width:var(--bw);height:var(--bw);opacity:0;border-width:1px}}
+[data-ccov="1"][data-bub="1"] .lock .clock .t>span{background:linear-gradient(180deg,#fff 0%,color-mix(in srgb,var(--c1) 55%,#fff) 40%,var(--c1) 100%);-webkit-background-clip:text;background-clip:text}
+[data-wb="1"] .w.on{animation:wbn .55s cubic-bezier(.2,1.4,.4,1)}
+@keyframes wbn{0%{transform:scale(.8) rotate(-3deg)}60%{transform:scale(1.12)}100%{transform:none}}
+[data-night="1"] .lock .bg{background:#000}
+[data-night="1"] .lock .bg .art,[data-night="1"] .lock .bg .blob,[data-night="1"] .lock .bg::after,[data-night="1"] .lock .bg::before{display:none}
+[data-night="1"] .lock .app{filter:brightness(.7)}
+.mini{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(56px + env(safe-area-inset-bottom,0px));z-index:3;display:none;align-items:center;gap:16px;opacity:0;pointer-events:none;transition:opacity .5s}
+[data-mini="1"] .lock .mini{display:flex}
+.lock.idle .mini{opacity:1;pointer-events:auto}
+.mb{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(120% 140% at 28% 16%,rgba(255,255,255,.4),rgba(255,255,255,.1) 60%);border:1px solid rgba(255,255,255,.35);box-shadow:inset 0 .1em .15em rgba(255,255,255,.5),0 8px 24px rgba(0,0,0,.3);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.mb.big{width:84px;height:84px}
+.mb svg{width:44%;height:44%;fill:var(--paper)}
 </style>
 
 <div class="bg" aria-hidden="true">
@@ -285,6 +353,7 @@ textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--
 <button class="wk" id="unlock" hidden>Koppints: a hang bekapcsolása</button>
 <button class="wk" id="wk" hidden>Koppints: a kijelző maradjon ébren</button>
 <div class="np" id="np"></div>
+<div class="mini" id="mini"><button class="mb" id="mPrev" aria-label="Előző"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button><button class="mb big" id="mPlay" aria-label="Lejátszás"><svg viewBox="0 0 24 24"><path id="mPath" d="M8 5v14l11-7z"/></svg></button><button class="mb" id="mNext" aria-label="Következő"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button></div>
 <div class="hello" id="hello" hidden>
   <div class="card">
     <h1>Peak music setup</h1>
@@ -298,7 +367,7 @@ textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--
   <h2>Beállítások <button class="ib" id="closeSet" aria-label="Bezárás"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></h2>
 
   <div class="tabs" role="tablist">
-    <button data-t="zene">Zene</button><button data-t="bg">Háttér</button><button data-t="ora">Óra</button><button data-t="szoveg">Szöveg</button><button data-t="semak">Sémák</button><button data-t="egyeb">Egyéb</button>
+    <button data-t="zene">Zene</button><button data-t="bg">Háttér</button><button data-t="ora">Óra</button><button data-t="bub">Buborék</button><button data-t="szoveg">Szöveg</button><button data-t="semak">Sémák</button><button data-t="egyeb">Egyéb</button>
   </div>
 
   <div class="pane" data-p="zene">
@@ -351,6 +420,7 @@ textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--
 
   <div class="pane" data-p="ora" hidden>
     <label class="chk"><input type="checkbox" id="cClk"> Óra mutatása</label>
+    <label class="chk"><input type="checkbox" id="cBub"> Buborékos stílus (Óra nézet)</label>
     <div class="fld"><label for="rCs"><span>Méret</span><span id="vCs"></span></label><input type="range" id="rCs" min="50" max="200" step="10"></div>
     <div class="fld"><label for="sCw"><span>Vastagság</span></label><select id="sCw"><option value="">Alap</option><option value="200">Vékony</option><option value="400">Normál</option><option value="700">Félkövér</option></select></div>
     <div class="fld"><label for="sCc"><span>Szín</span></label><select id="sCc"><option value="paper">Fehér</option><option value="accent">Kiemelő szín</option><option value="custom">Egyedi</option></select><input type="color" id="cCus"></div>
@@ -359,6 +429,8 @@ textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--
     <label class="chk"><input type="checkbox" id="cSec"> Másodpercek</label>
     <label class="chk"><input type="checkbox" id="cDate"> Dátum</label>
   </div>
+
+  <div class="pane" data-p="bub" hidden id="paneBub"></div>
 
   <div class="pane" data-p="szoveg" hidden>
     <h3>Dalszöveg</h3>
@@ -389,6 +461,9 @@ textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--
   </div>
 
   <div class="pane" data-p="egyeb" hidden>
+    <h3>Telepítés</h3>
+    <p class="note" id="pwaNote">Telepítve saját appként: főképernyős ikon, böngészősáv nélkül.</p>
+    <button class="btn ghost" id="pwaBtn" hidden>Telepítés a főképernyőre</button>
     <label class="chk"><input type="checkbox" id="cMs"> Zárképernyős kártya (automatikus)</label>
     <p class="note">A böngészős lejátszóval együtt magától bekapcsol: a zárolt képernyőn az aktuális sor látszik a lejátszó-kártyán.</p>
     <h3>Hibaelhárítás</h3>
@@ -410,7 +485,7 @@ var $=function(id){return document.getElementById(id)};
 var LS={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 
 /* ---------- beállítások ---------- */
-var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto',kar:false,tr:false,font:'',shape:'round',csz:100,anim:'pop',al:'c',lcol:'paper',lcus:'#ffffff',caps:false,webAuto:true,vol:80,hl:'color',gw:90,acc:'',emap:'',dev:'Peak Music Setup',msAuto:true,bgm:'blob',spd:100,dim:0,glow:28,col1:'#ff7a1a',col2:'#3a1d6e',cs:100,cw:'',ccol:'paper',ccus:'#ffffff',cpos:'top',c24:true,csec:false,cdate:true};
+var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto',kar:false,tr:false,font:'',shape:'round',csz:100,anim:'pop',al:'c',lcol:'paper',lcus:'#ffffff',caps:false,webAuto:true,vol:80,hl:'color',gw:90,acc:'',emap:'',dev:'Peak Music Setup',msAuto:true,bgm:'blob',spd:100,dim:0,glow:28,col1:'#ff7a1a',col2:'#3a1d6e',cs:100,cw:'',ccol:'paper',ccus:'#ffffff',cpos:'top',c24:true,csec:false,cdate:true,bub:true,bon:true,ball:false,bn:16,bsz:100,bsp:100,bop:100,bpl:false,bbeat:true,bpop:true,bsnd:false,btilt:false,wbub:true,dpill:true,ccov:false,wb:false,mini:true,night:false,nf:22,nt:6};
 try{var sv=JSON.parse(LS.get('pms.settings')||'{}');for(var k in sv)if(k in S)S[k]=sv[k]}catch(e){}
 function saveS(){LS.set('pms.settings',JSON.stringify(S))}
 function applyS(){
@@ -428,10 +503,13 @@ function applyS(){
 [['cKin','kin'],['cEmo','emo'],['cClk','clk'],['cAuto','auto'],['cTr','tr']].forEach(function(p){$(p[0]).addEventListener('change',function(e){S[p[1]]=e.target.checked;applyS();saveS();if(p[1]!=='clk'){lastIdx=-2}})});
 
 /* ---------- óra ---------- */
+var CF=null,CFk='';
 function tickClock(){
-  var d=new Date();
-  $('clkT').textContent=d.toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit',second:S.csec?'2-digit':undefined,hour12:!S.c24});
-  $('clkD').textContent=d.toLocaleDateString('hu-HU',{weekday:'short',month:'short',day:'numeric'});
+  var d=new Date(),k=''+S.c24+S.csec;
+  if(CFk!==k){CFk=k;CF=new Intl.DateTimeFormat('hu-HU',{hour:'2-digit',minute:'2-digit',second:S.csec?'2-digit':undefined,hour12:!S.c24})}
+  var h='';CF.formatToParts(d).forEach(function(q){var c=q.type==='hour'?'hh':q.type==='minute'?'mm':q.type==='second'?'ss':q.type==='literal'?'sep':'dp';h+='<span class="'+c+'">'+q.value+'</span>'});
+  var t=$('clkT');if(t.dataset.h!==h){t.dataset.h=h;t.innerHTML=h}
+  $('clkD').textContent=d.toLocaleDateString('hu-HU',{weekday:'long',month:'long',day:'numeric'});
 }
 tickClock();setInterval(tickClock,1000);
 
@@ -858,10 +936,10 @@ function applyS2(){
   r.setProperty('--ccol',S.ccol==='accent'?'var(--ember)':S.ccol==='custom'?S.ccus:'var(--paper)');
   $('vSpd').textContent=S.spd+'%';$('vDim').textContent=S.dim+'%';$('vGlow').textContent=S.glow+'%';$('vCs').textContent=S.cs+'%';
   [['rSpd','spd'],['rDim','dim'],['rGlow','glow'],['rCs','cs'],['col1','col1'],['col2','col2'],['cCus','ccus'],['sBg','bgm'],['sCw','cw'],['sCc','ccol'],['sCp','cpos']].forEach(function(q){$(q[0]).value=S[q[1]]});
-  $('c24').checked=S.c24;$('cSec').checked=S.csec;$('cDate').checked=S.cdate;$('clkD').hidden=!S.cdate;
-  bgSet();tickClock();applyS3();
+  $('cBub').checked=S.bub;h.dataset.bub=S.bub?'1':'';$('c24').checked=S.c24;$('cSec').checked=S.csec;$('cDate').checked=S.cdate;$('clkD').hidden=!S.cdate;
+  bgSet();tickClock();applyS3();applyBub();
 }
-[['rSpd','spd',1],['rDim','dim',1],['rGlow','glow',1],['rCs','cs',1],['col1','col1'],['col2','col2'],['cCus','ccus'],['sBg','bgm'],['sCw','cw'],['sCc','ccol'],['sCp','cpos'],['c24','c24',2],['cSec','csec',2],['cDate','cdate',2]].forEach(function(q){
+[['rSpd','spd',1],['rDim','dim',1],['rGlow','glow',1],['rCs','cs',1],['col1','col1'],['col2','col2'],['cCus','ccus'],['sBg','bgm'],['sCw','cw'],['sCc','ccol'],['sCp','cpos'],['c24','c24',2],['cSec','csec',2],['cDate','cdate',2],['cBub','bub',2]].forEach(function(q){
   var e=$(q[0]);e.addEventListener(q[2]===2?'change':'input',function(){
     S[q[1]]=q[2]===2?e.checked:q[2]===1?+e.value:e.value;
     if(q[1]==='col1'||q[1]==='col2'){S.theme='custom';paintSw();if(P.track)paintTheme(P.track.pal)}
@@ -1170,6 +1248,75 @@ setInterval(function(){
   if(!webP){webAuto();return}
   if(!webId){if(!wdT)wdT=Date.now();else if(Date.now()-wdT>15000){wdT=0;rebuild()}}else wdT=0;
 },5000);
+
+
+/* ---------- buborék modul: minden személyre szabható ---------- */
+var BBX=null,BBsig='',BD=[
+ ['bon','c','Lebegő buborékok'],['ball','c','Buborékok minden nézetben (nem csak az Óra nézetben)'],
+ ['bn','n','Buborékok száma',4,40,1,''],['bsz','n','Méret',40,200,10,'%'],['bsp','n','Sebesség',30,250,10,'%'],['bop','n','Átlátszatlanság',20,100,5,'%'],
+ ['bpl','c','Csak lejátszás közben mozogjanak'],['bbeat','c','Sorváltásra pulzáljanak'],['bpop','c','Koppintásra kipukkannak'],['bsnd','c','Pukkanás hang'],['btilt','c','Telefon döntésére sodródjanak'],
+ ['wbub','c','Szavak üveg-buborékban'],['dpill','c','Dátum pirulában'],['ccov','c','Óra színe a borítóból'],['wb','c','Szavak pattogása sorváltáskor'],
+ ['mini','c','Nagy gombok az Óra nézetben (alvó képernyőn)'],['night','c','Éjszakai mód (fekete háttér, tompítva)'],['nf','n','Éjszaka kezdete',18,24,1,' ó'],['nt','n','Éjszaka vége',0,10,1,' ó']];
+(function(){var h='';BD.forEach(function(d){var id='bx_'+d[0];
+  h+=d[1]==='c'?'<label class="chk"><input type="checkbox" id="'+id+'"> '+d[2]+'</label>':'<div class="fld"><label for="'+id+'"><span>'+d[2]+'</span><span id="'+id+'v"></span></label><input type="range" id="'+id+'" min="'+d[3]+'" max="'+d[4]+'" step="'+d[5]+'"></div>'});
+  h+='<div class="fld"><label for="sSleep"><span>Alvásidőzítő</span></label><select id="sSleep"><option value="0">Ki</option><option value="15">15 perc</option><option value="30">30 perc</option><option value="45">45 perc</option><option value="60">60 perc</option><option value="90">90 perc</option></select></div>';
+  h+='<h3>Mentés / áthozás</h3><textarea id="bxCode" rows="3" placeholder="Beállítás-kód"></textarea><p class="note"><button class="btn ghost" id="bxExp">Kód készítése</button> <button class="btn ghost" id="bxImp">Betöltés</button> <button class="btn ghost" id="bxRst">Buborék alapértékek</button></p>';
+  $('paneBub').innerHTML=h;
+  BD.forEach(function(d){var e=$('bx_'+d[0]);e.addEventListener(d[1]==='c'?'change':'input',function(){S[d[0]]=d[1]==='c'?e.checked:+e.value;if(d[0]==='btilt'&&e.checked)askTilt();saveS();applyBub()})});
+})();
+function mkBubbles(){
+  var sig=[S.bn,S.bsz,S.bsp].join();if(BBX&&sig===BBsig)return;BBsig=sig;
+  if(!BBX){BBX=document.createElement('div');BBX.className='bubbles';document.querySelector('.bg').appendChild(BBX)}
+  BBX.textContent='';
+  for(var i=0;i<S.bn;i++){var e=document.createElement('i'),sz=(i%5===0?20+Math.random()*10:5+Math.random()*10)*S.bsz/100;
+    e.style.cssText='--x:'+Math.round(Math.random()*96)+'%;--s:'+sz.toFixed(1)+'vmax;--t:'+((22+Math.random()*26)*100/S.bsp).toFixed(1)+'s;--dl:-'+(Math.random()*40).toFixed(1)+'s;--sw:'+Math.round(Math.random()*12-6)+'vw';BBX.appendChild(e)}
+}
+function applyBub(){
+  var h=document.documentElement,r=h.style;
+  ['bon','ball','wbub','dpill','ccov','wb','mini','bpl'].forEach(function(k){h.dataset[k]=S[k]?'1':''});
+  r.setProperty('--bop',S.bop/100);mkBubbles();
+  BD.forEach(function(d){var e=$('bx_'+d[0]);if(!e)return;if(d[1]==='c')e.checked=!!S[d[0]];else{e.value=S[d[0]];$('bx_'+d[0]+'v').textContent=S[d[0]]+d[6]}});
+  nightChk();
+}
+function nightChk(){var hr=new Date().getHours(),a=S.nf%24,b=S.nt,on=S.night&&(a>b?(hr>=a||hr<b):(hr>=a&&hr<b));document.documentElement.dataset.night=on?'1':''}
+/* pukkanás */
+var AC=null;
+function popSnd(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();var o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;o.frequency.setValueAtTime(500,t);o.frequency.exponentialRampToValueAtTime(1400,t+.08);g.gain.setValueAtTime(.15,t);g.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.13)}catch(e){}}
+document.addEventListener('pointerdown',function(e){
+  if(!S.bpop||!S.bon||!BBX||getComputedStyle(BBX).display==='none')return;
+  if(e.target.closest&&e.target.closest('.panel,.dock,.mini,.tools,button,input,select,textarea'))return;
+  var L=BBX.children;for(var i=0;i<L.length;i++){var b=L[i];if(b.style.visibility==='hidden')continue;
+    var q=b.getBoundingClientRect(),dx=e.clientX-(q.left+q.width/2),dy=e.clientY-(q.top+q.height/2);
+    if(Math.hypot(dx,dy)<q.width/2){b.style.visibility='hidden';var f=document.createElement('div');f.className='burst';f.style.cssText='left:'+e.clientX+'px;top:'+e.clientY+'px;--bw:'+(q.width*1.5)+'px';document.body.appendChild(f);setTimeout(function(){f.remove()},500);
+      if(S.bsnd)popSnd();(function(x){setTimeout(function(){x.style.visibility=''},7000)})(b);break}}
+},{passive:true});
+/* döntés */
+function askTilt(){try{if(window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission)DeviceOrientationEvent.requestPermission().catch(function(){})}catch(e){}}
+window.addEventListener('deviceorientation',function(e){if(!S.btilt||!BBX)return;var g=Math.max(-1,Math.min(1,(e.gamma||0)/40));document.documentElement.style.setProperty('--tx',Math.round(g*innerWidth*.15)+'px')});
+/* zenére pulzálás, állapot, éjszaka */
+var prevIdx=-2;
+setInterval(function(){
+  var h=document.documentElement;h.dataset.pl=P.playing?'1':'0';
+  if(S.bbeat&&P.playing&&BBX&&lastIdx!==prevIdx&&lastIdx>=0){BBX.classList.add('beat');setTimeout(function(){BBX.classList.remove('beat')},500)}
+  prevIdx=lastIdx;
+  $('mPath').setAttribute('d',P.playing?'M7 5h3.5v14H7zM13.5 5H17v14h-3.5z':'M8 5v14l11-7z');
+},300);
+setInterval(nightChk,60000);
+$('mPrev').onclick=function(){$('prev').click()};$('mNext').onclick=function(){$('nextBtn').click()};$('mPlay').onclick=function(){$('play').click()};
+/* alvásidőzítő */
+var slT=0;$('sSleep').addEventListener('change',function(){clearTimeout(slT);var m=+this.value,sel=this;if(m>0){toast('Alvásidőzítő: '+m+' perc',2500);slT=setTimeout(function(){if(P.playing)$('play').click();sel.value='0';toast('Jó éjszakát! A zene megállt.',5000)},m*60000)}});
+/* export / import / alapérték */
+$('bxExp').onclick=function(){var c=btoa(unescape(encodeURIComponent(JSON.stringify(S))));$('bxCode').value=c;try{navigator.clipboard.writeText(c)}catch(e){}toast('Kód kész. Másold át másik eszközre.',3000)};
+$('bxImp').onclick=function(){try{var o=JSON.parse(decodeURIComponent(escape(atob($('bxCode').value.trim()))));for(var k in o)if(k in S&&k!=='view')S[k]=o[k];saveS();applyS();toast('Beállítások betöltve.',2500)}catch(e){toast('Érvénytelen kód.',3000)}};
+$('bxRst').onclick=function(){var d={bon:true,ball:false,bn:16,bsz:100,bsp:100,bop:100,bpl:false,bbeat:true,bpop:true,bsnd:false,btilt:false,wbub:true,dpill:true,ccov:false,wb:false,mini:true,night:false,nf:22,nt:6,bub:true};for(var k in d)S[k]=d[k];saveS();applyS();toast('Buborék alapértékek visszaállítva.',2500)};
+
+/* ---------- PWA ---------- */
+var pwaEv=null,STANDALONE=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
+if('serviceWorker' in navigator&&location.protocol==='https:')window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();pwaEv=e;$('pwaBtn').hidden=false});
+window.addEventListener('appinstalled',function(){pwaEv=null;$('pwaBtn').hidden=true;toast('Telepítve!',2500)});
+$('pwaNote').textContent=STANDALONE?'Már telepített appként fut.':IOS?'iPhone-on: Safari, Megosztás gomb, majd "Főképernyőre". Az app külön tárhelyet kap, ezért ott újra be kell lépned a Spotifyba.':'Telepítve saját appként fut: főképernyős ikon, böngészősáv nélkül.';
+$('pwaBtn').onclick=function(){if(pwaEv){pwaEv.prompt();pwaEv=null;$('pwaBtn').hidden=true}};
 
 /* ---------- indulás ---------- */
 applyS();setView(['cover','lyr','kar','lock'].indexOf(S.view)>=0?S.view:'lyr');paintPlay();
