@@ -230,6 +230,7 @@ input[type=color]{width:100%;height:40px;padding:2px;border-radius:10px;border:1
 [data-hl="none"] .w.v3{color:inherit}
 .bg::before{box-shadow:inset 0 0 var(--gw,90px) 6px var(--c1),inset 0 0 0 1px var(--c1)}
 textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(255,243,226,.06);color:var(--paper);font:inherit;resize:vertical}
+#unlock{bottom:calc(100px + env(safe-area-inset-bottom));background:var(--ember);color:#1a0d02;font-weight:700;border-color:transparent}
 </style>
 
 <div class="bg" aria-hidden="true">
@@ -281,6 +282,7 @@ textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--
 </div>
 
 <div class="toast" id="toast" role="status" hidden></div>
+<button class="wk" id="unlock" hidden>Koppints: a hang bekapcsolása</button>
 <button class="wk" id="wk" hidden>Koppints: a kijelző maradjon ébren</button>
 <div class="np" id="np"></div>
 <div class="hello" id="hello" hidden>
@@ -617,6 +619,7 @@ var sp={
   scopes:'user-read-currently-playing user-read-playback-state user-modify-playback-state user-library-read user-library-modify streaming user-read-email user-read-private playlist-read-private user-read-recently-played',
   tok:null,timer:null,
   say:function(m){$('status').textContent=m||''},
+  expired:function(){clearInterval(sp.timer);LS.del('pms.tok');sp.tok=null;try{webStop()}catch(e){}$('conn').hidden=false;$('disc').hidden=true;toast('A belépés lejárt. Jelentkezz be újra.',8000);$('panel').classList.add('open');tab('zene')},
   rand:function(n){var a=new Uint8Array(n);crypto.getRandomValues(a);return Array.from(a,function(b){return('0'+b.toString(16)).slice(-2)}).join('')},
   b64:function(buf){return btoa(String.fromCharCode.apply(null,new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')},
   login:function(){
@@ -629,13 +632,14 @@ var sp={
   },
   token:function(body){
     return fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body)}).then(function(r){return r.json()}).then(function(j){
-      if(!j.access_token)throw new Error(j.error_description||'token');
+      if(!j.access_token)throw new Error((j.error||'')+' '+(j.error_description||'token'));
       sp.tok={a:j.access_token,r:j.refresh_token||(sp.tok&&sp.tok.r),exp:Date.now()+j.expires_in*1000-60000};LS.set('pms.tok',JSON.stringify(sp.tok));
     });
   },
   ensure:function(){
-    if(sp.tok&&Date.now()<sp.tok.exp)return Promise.resolve();
-    return sp.token({grant_type:'refresh_token',refresh_token:sp.tok.r,client_id:LS.get('pms.cid')||''});
+    if(!sp.tok)return Promise.reject(new Error('no token'));
+    if(Date.now()<sp.tok.exp)return Promise.resolve();
+    return sp.token({grant_type:'refresh_token',refresh_token:sp.tok.r,client_id:CLIENT_ID||LS.get('pms.cid')||''}).catch(function(e){if(/invalid_grant|revoked|invalid refresh/i.test(e.message))sp.expired();throw e});
   },
   cmd:function(method,path){
     sp.ensure().then(function(){return fetch('https://api.spotify.com/v1/me/player/'+path+(webId?(path.indexOf('?')<0?'?':'&')+'device_id='+webId:''),{method:method,headers:{Authorization:'Bearer '+sp.tok.a}})}).then(function(){setTimeout(sp.poll,500)}).catch(function(){sp.say('A vezérléshez Premium kell és aktív eszköz.')});
@@ -653,12 +657,12 @@ var sp={
           extractPalette(img,function(pal){t.pal=pal;paintTrack(t)});
           fetchLyrics(t.title,t.artist,t.dur,t.id);onTrack(t);
         }
-        P.posAt=j.progress_ms;P.tAt=now();P.playing=!!j.is_playing;paintPlay();
+        if(!(webId&&Date.now()-wsAt<3000)){P.posAt=j.progress_ms;P.tAt=now();P.playing=!!j.is_playing;paintPlay()}
       });
     }).catch(function(){sp.say('Nem sikerült elérni a Spotifyt. Jelentkezz be újra.')});
   },
   start:function(){
-    $('conn').hidden=true;$('disc').hidden=false;sp.say('Csatlakozva. Indíts el egy számot a Spotifyon.');
+    clearInterval(sp.timer);$('conn').hidden=true;$('disc').hidden=false;sp.say('Csatlakozva. Indíts el egy számot a Spotifyon.');
     P.mode='spotify';P.playing=false;paintPlay();$('hello').hidden=true;sdkLoad();webAuto();sp.poll();sp.timer=setInterval(sp.poll,4000);
   },
   stop:function(){clearInterval(sp.timer);LS.del('pms.tok');sp.tok=null;$('conn').hidden=false;$('disc').hidden=true;sp.say('');$('like').hidden=true;$('up').textContent='';loadDemo(0,false)}
@@ -882,14 +886,20 @@ var toT;
 function toast(m,ms){var t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toT);toT=setTimeout(function(){t.hidden=true},ms||6500)}
 function webErr(m){sp.say(m);toast(m)}
 function devLbl(){if(P.mode==='spotify')$('srcLbl').textContent=webId?'Spotify · ez a böngésző':'Spotify · másik eszköz'}
+var needGest=false,wsAt=0,webFail=false;
+function unlockPaint(){$('unlock').hidden=!(webP&&needGest&&S.webAuto&&sp.tok)}
+function ifTitle(t){[].forEach.call(document.querySelectorAll('iframe[src*="sdk.scdn.co"]'),function(f){try{f.title=t}catch(e){}})}
 function webStop(){
-  try{webP.disconnect()}catch(e){}
-  webP=null;webId=null;$('webBtn').textContent='Böngészős lejátszó indítása';devLbl();sp.say('Böngészős lejátszó leállítva.');
+  try{if(webP)webP.disconnect()}catch(e){}
+  webP=null;webId=null;
+  [].forEach.call(document.querySelectorAll('iframe[src*="sdk.scdn.co"]'),function(f){f.remove()});
+  $('webBtn').textContent='Böngészős lejátszó indítása';devLbl();unlockPaint();
 }
 function webState(s){
-  if(!s)return;
+  if(!s)return;wsAt=Date.now();
   P.mode='spotify';P.posAt=s.position;P.tAt=now();P.playing=!s.paused;paintPlay();
-  var n=s.track_window&&s.track_window.next_tracks&&s.track_window.next_tracks[0];
+  var c=s.track_window&&s.track_window.current_track,n=s.track_window&&s.track_window.next_tracks&&s.track_window.next_tracks[0];
+  if(c&&!msAct)ifTitle(c.name+' · '+((c.artists&&c.artists[0]&&c.artists[0].name)||''));
   $('up').textContent=n?'Következik: '+n.name+' · '+((n.artists&&n.artists[0]&&n.artists[0].name)||''):'';
   P.shuf=!!s.shuffle;P.rep=s.repeat_mode||0;
   $('bShuf').setAttribute('aria-pressed',P.shuf);$('bRep').textContent='Ismétlés: '+['ki','lista','szám'][P.rep];$('bRep').setAttribute('aria-pressed',P.rep>0);
@@ -897,31 +907,40 @@ function webState(s){
 }
 function webInit(){
   var nm=S.dev||'Peak Music Setup';
-  if(!window.isSecureContext){webErr('A hanghoz https cím kell, ezen a címen nem működhet a böngészős lejátszó.');return}
-  webP=new Spotify.Player({name:nm,getOAuthToken:function(cb){sp.ensure().then(function(){cb(sp.tok.a)})},volume:(S.vol||80)/100});
+  if(!window.isSecureContext){webFail=true;webErr('A hanghoz https cím kell, ezen a címen nem működhet a böngészős lejátszó.');return}
+  if(typeof Spotify==='undefined'){sdkOk=false;sdkL=false;sdkLoad();return}
+  needGest=true;
+  webP=new Spotify.Player({name:nm,getOAuthToken:function(cb){sp.ensure().then(function(){cb(sp.tok.a)}).catch(function(){webErr('A belépés lejárt vagy nincs net. Próbáld az újraindítás gombot.')})},volume:(S.vol||80)/100});
   webP.addListener('ready',function(d){
     webId=d.device_id;$('webBtn').textContent='Böngészős lejátszó leállítása';devLbl();toast('Kész: ez az oldal mostantól Spotify-eszköz ('+nm+').');
     api('PUT','player',{device_ids:[webId],play:!!P.playing}).then(function(){setTimeout(sp.poll,800);setTimeout(devs,1200)}).catch(function(){webErr('Az átváltáshoz Premium kell, és legyen elindítva egy szám.')});
     if(S.msAuto&&!msAct){$('cMs').checked=true;msOn()}
+    setTimeout(function(){msLine(lastIdx)},1500);
   });
   webP.addListener('not_ready',function(){webId=null;devLbl()});
   webP.addListener('player_state_changed',webState);
-  webP.addListener('autoplay_failed',function(){webErr('A böngésző letiltotta az automatikus indítást. Koppints a lejátszás gombra.')});
-  webP.addListener('initialization_error',function(){webErr('Ez a böngésző nem tudja lejátszani a Spotify védett hangját (DRM). Próbáld Chrome-ban vagy Safariban.')});
-  webP.addListener('authentication_error',function(){webErr('Lépj ki, majd be újra: új jogosultságok kellenek.')});
-  webP.addListener('account_error',function(){webErr('Ehhez teljes Spotify Premium fiók kell.')});
+  webP.addListener('autoplay_failed',function(){needGest=true;unlockPaint();webErr('A böngésző letiltotta az automatikus indítást. Koppints a lejátszás gombra.')});
+  webP.addListener('initialization_error',function(){webFail=true;webErr('Ez a böngésző nem tudja lejátszani a Spotify védett hangját (DRM). Próbáld Chrome-ban vagy Safariban.')});
+  webP.addListener('authentication_error',function(){webFail=true;webErr('Lépj ki, majd be újra: új jogosultságok kellenek.')});
+  webP.addListener('account_error',function(){webFail=true;webErr('Ehhez teljes Spotify Premium fiók kell.')});
   webP.addListener('playback_error',function(e){webErr('Lejátszási hiba: '+((e&&e.message)||''))});
-  webP.activateElement();webP.connect();
-  setTimeout(function(){if(webP&&!webId)webErr('A böngészős lejátszó nem csatlakozott. Ellenőrizd a Premiumot, és hogy a fiókod fel van-e véve a Spotify-app tesztelői közé.')},12000);
+  webP.activateElement();webP.connect();unlockPaint();
+  setTimeout(function(){if(webP&&!webId&&!webFail)webErr('A böngészős lejátszó nem csatlakozott. Ellenőrizd a Premiumot, és hogy a fiókod fel van-e véve a Spotify-app tesztelői közé.')},12000);
 }
-function webAuto(){if(S.webAuto&&sp.tok&&sdkOk&&!webP)webInit()}
+function webAuto(){if(S.webAuto&&sp.tok&&sdkOk&&!webP&&!webFail)webInit()}
 function webStart(){
   if(!sp.tok){sp.say('Előbb jelentkezz be Spotifyal.');return}
   if(webP){S.webAuto=false;saveS();applyS3();webStop();return}
   sdkLoad();if(!sdkOk){sp.say('A lejátszó még töltődik, próbáld újra egy pillanat múlva.');return}
-  S.webAuto=true;saveS();applyS3();webInit();
+  S.webAuto=true;webFail=false;saveS();applyS3();webInit();
 }
-document.addEventListener('pointerdown',function(){if(webP)try{webP.activateElement()}catch(e){}},{passive:true});
+function unlockTap(){
+  if(webP)try{webP.activateElement()}catch(e){}
+  if(needGest){needGest=false;unlockPaint()}
+  if(S.msAuto&&webId&&!msAct)msOn();
+}
+['pointerup','click'].forEach(function(n){document.addEventListener(n,unlockTap,{passive:true})});
+$('unlock').addEventListener('click',unlockTap);
 function needPick(){$('panel').classList.add('open');tab('zene');webErr('Válassz egy számot a keresésből vagy a listáidból.')}
 function startSomething(){
   if(!sp.tok){needPick();return}
@@ -945,7 +964,7 @@ function keepAwake(){
 }
 function wkCheck(){$('wk').hidden=!(S.view==='lock'&&!wl&&!nsOk)}
 $('wk').onclick=function(){keepAwake()};
-document.addEventListener('pointerdown',function(){if(S.view==='lock'&&!wl&&!nsOk)keepAwake()},{passive:true});
+document.addEventListener('pointerup',function(){if(S.view==='lock'&&!wl&&!nsOk)keepAwake()},{passive:true});
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.view==='lock'){nsOk=false;keepAwake()}});
 
 /* ---------- dokk mód + zárképernyős kártya ---------- */
@@ -960,7 +979,7 @@ function silentWav(){
 function msOn(){
   if(!('mediaSession' in navigator)){$('cMs').checked=false;sp.say('Ez a böngésző nem támogatja a lejátszó-kártyát.');return}
   if(!msA){msA=new Audio(silentWav());msA.loop=true;msA.setAttribute('playsinline','')}
-  (webId?Promise.resolve():msA.play()).then(function(){
+  msA.play().then(function(){
     msAct=true;var m=navigator.mediaSession;
     m.setActionHandler('play',function(){if(!P.playing)$('play').click()});
     m.setActionHandler('pause',function(){if(P.playing)$('play').click()});
@@ -974,8 +993,11 @@ function msOff(){
   try{var m=navigator.mediaSession;m.metadata=null;['play','pause','nexttrack','previoustrack','seekto'].forEach(function(a){m.setActionHandler(a,null)})}catch(e){}
 }
 function msLine(i){
-  if(!msAct)return;var t=P.track||{},ln=lines[i],nx=lines[i+1];
-  try{navigator.mediaSession.metadata=new MediaMetadata({title:(ln&&ln.s)||t.title||'',artist:t.title?t.title+' · '+t.artist:'',album:(nx&&nx.s)||'',artwork:t.img?[{src:t.img,sizes:'512x512'}]:[]})}catch(e){}
+  var t=P.track||{},ln=lines[i],nx=lines[i+1],ttl=(ln&&ln.s)||t.title||'';
+  ifTitle(ttl);if(msAct&&ttl)document.title=ttl;
+  if(!msAct)return;
+  var im=t.img?[{src:t.img,sizes:'640x640',type:'image/jpeg'},{src:t.img,sizes:'512x512',type:'image/jpeg'},{src:t.img,sizes:'256x256',type:'image/jpeg'}]:[];
+  try{navigator.mediaSession.metadata=new MediaMetadata({title:ttl,artist:t.title?t.title+' · '+t.artist:'',album:(nx&&nx.s)||t.artist||'',artwork:im})}catch(e){}
 }
 function msTick(p){
   if(!msAct||Date.now()-msT<1000)return;msT=Date.now();
@@ -1093,8 +1115,7 @@ $('rstBtn').onclick=softReset;$('rstSoft').onclick=softReset;$('rstHard').onclic
 var recT=0;
 function recover(){
   if(!sp.tok||Date.now()-recT<3000)return;recT=Date.now();sp.poll();if(!S.webAuto)return;
-  if(webP){webP.connect().then(function(ok){if(!ok){webStop();setTimeout(webAuto,500)}}).catch(function(){webStop();setTimeout(webAuto,500)})}
-  else webAuto();
+  healthCheck();
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden)recover()});
 window.addEventListener('pageshow',function(e){if(e.persisted)recover()});
@@ -1135,18 +1156,33 @@ $('dispBtn').onclick=function(){
   toast('Második képernyő mód: csak a szöveget mutatja, a zenét nem játssza le.',4500);
 };
 
+/* ---------- lejátszó-egészség ---------- */
+function rebuild(){webStop();setTimeout(webAuto,400)}
+function healthCheck(){
+  if(!S.webAuto||!sp.tok||webFail)return;
+  if(!webP){webAuto();return}
+  var done=false,t=setTimeout(function(){if(!done){done=true;rebuild()}},4000);
+  webP.getCurrentState().then(function(s){if(done)return;done=true;clearTimeout(t);if(s)webState(s);else if(!webId)rebuild()}).catch(function(){if(!done){done=true;clearTimeout(t);rebuild()}});
+}
+var wdT=0;
+setInterval(function(){
+  if(!sp.tok||!S.webAuto||document.hidden||webFail)return;
+  if(!webP){webAuto();return}
+  if(!webId){if(!wdT)wdT=Date.now();else if(Date.now()-wdT>15000){wdT=0;rebuild()}}else wdT=0;
+},5000);
+
 /* ---------- indulás ---------- */
 applyS();setView(['cover','lyr','kar','lock'].indexOf(S.view)>=0?S.view:'lyr');paintPlay();
-loadDemo(0,true);
+loadDemo(0,!(LS.get('pms.tok')||location.search.indexOf('code=')>=0));
 requestAnimationFrame(frame);
 
 try{
   var qs=new URLSearchParams(location.search),code=qs.get('code');
   if(code&&LS.get('pms.verifier')){
     history.replaceState(null,'',location.pathname);
-    sp.token({grant_type:'authorization_code',code:code,redirect_uri:sp.redirect,client_id:LS.get('pms.cid')||'',code_verifier:LS.get('pms.verifier')}).then(sp.start).catch(function(){$('panel').classList.add('open');sp.say('A bejelentkezés nem sikerült. Ellenőrizd a Client ID-t és a Redirect URI-t.')});
+    sp.token({grant_type:'authorization_code',code:code,redirect_uri:sp.redirect,client_id:CLIENT_ID||LS.get('pms.cid')||'',code_verifier:LS.get('pms.verifier')}).then(sp.start).catch(function(){$('panel').classList.add('open');sp.say('A bejelentkezés nem sikerült. Ellenőrizd a Client ID-t és a Redirect URI-t.')});
   }else{
-    var st=LS.get('pms.tok');if(st){sp.tok=JSON.parse(st);sp.start()}
+    var st=LS.get('pms.tok');if(st){try{sp.tok=JSON.parse(st);if(!sp.tok||!sp.tok.r)throw 0;sp.start()}catch(e2){sp.tok=null;LS.del('pms.tok');loadDemo(0,true)}}
   }
 }catch(e){}
 if(CLIENT_ID&&!sp.tok&&!code&&!LS.get('pms.seen'))$('hello').hidden=false;
