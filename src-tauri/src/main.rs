@@ -23,14 +23,14 @@ fn press(app: &tauri::AppHandle, id: &str) {
 // Az ablak megnyitása elott indul, így nincs versenyhelyzet.
 fn serve(app: &tauri::AppHandle) -> std::io::Result<()> {
     let listener = TcpListener::bind(("127.0.0.1", PORT))?;
-    let resolver = app.asset_resolver();
+    let resolver = std::sync::Arc::new(app.asset_resolver());
     std::thread::spawn(move || {
         for stream in listener.incoming() {
             let mut s = match stream {
                 Ok(s) => s,
                 Err(_) => continue,
             };
-            let resolver = resolver.clone();
+            let resolver = std::sync::Arc::clone(&resolver);
             std::thread::spawn(move || {
                 let mut buf = [0u8; 8192];
                 let n = s.read(&mut buf).unwrap_or(0);
