@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::io::{Read, Write};
+use std::net::TcpListener;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Shortcut, ShortcutState};
 
@@ -17,9 +19,63 @@ fn press(app: &tauri::AppHandle, id: &str) {
     }
 }
 
+// Kicsi helyi szerver: a beépített weboldalt adja ki a 127.0.0.1 címen.
+// Az ablak megnyitása elott indul, így nincs versenyhelyzet.
+fn serve(app: &tauri::AppHandle) -> std::io::Result<()> {
+    let listener = TcpListener::bind(("127.0.0.1", PORT))?;
+    let resolver = app.asset_resolver();
+    std::thread::spawn(move || {
+        for stream in listener.incoming() {
+            let mut s = match stream {
+                Ok(s) => s,
+                Err(_) => continue,
+            };
+            let resolver = resolver.clone();
+            std::thread::spawn(move || {
+                let mut buf = [0u8; 8192];
+                let n = s.read(&mut buf).unwrap_or(0);
+                if n == 0 {
+                    return;
+                }
+                let req = String::from_utf8_lossy(&buf[..n]).to_string();
+                let path = req
+                    .lines()
+                    .next()
+                    .and_then(|l| l.split_whitespace().nth(1))
+                    .unwrap_or("/")
+                    .split(|c| c == '?' || c == '#')
+                    .next()
+                    .unwrap_or("/")
+                    .to_string();
+                let key = if path == "/" {
+                    "index.html".to_string()
+                } else {
+                    path.trim_start_matches('/').to_string()
+                };
+                match resolver.get(key) {
+                    Some(a) => {
+                        let head = format!(
+                            "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\nCache-Control: no-cache\r\nConnection: close\r\n\r\n",
+                            a.mime_type,
+                            a.bytes.len()
+                        );
+                        let _ = s.write_all(head.as_bytes());
+                        let _ = s.write_all(&a.bytes);
+                    }
+                    None => {
+                        let _ = s.write_all(
+                            b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                        );
+                    }
+                }
+            });
+        }
+    });
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_localhost::Builder::new(PORT).build())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, shortcut, event| {
@@ -36,7 +92,8 @@ fn main() {
                 .build(),
         )
         .setup(|app| {
-            // Média-billentyűk (ha foglaltak, nem baj, csak kihagyja)
+            serve(app.handle())?;
+            // Média-billentyuk (ha foglaltak, nem baj, csak kihagyja)
             for k in [Code::MediaPlayPause, Code::MediaTrackNext, Code::MediaTrackPrevious] {
                 let _ = app.global_shortcut().register(Shortcut::new(None, k));
             }
