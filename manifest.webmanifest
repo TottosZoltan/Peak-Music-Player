@@ -4,11 +4,7 @@
  "description": "Mozg\u00f3, szinkroniz\u00e1lt dalsz\u00f6veg a Spotifyhoz",
  "start_url": "/Peak-Music-Player/main.html",
  "scope": "/Peak-Music-Player/",
- "display": "fullscreen",
- "display_override": [
-  "fullscreen",
-  "standalone"
- ],
+ "display": "standalone",
  "orientation": "any",
  "background_color": "#0b0806",
  "theme_color": "#0b0806",
