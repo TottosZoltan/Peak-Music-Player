@@ -500,6 +500,8 @@ html,body{touch-action:none;overscroll-behavior:none}.panel,#pbox,textarea,selec
     <p class="note" id="pwaNote">Telepítve saját appként: főképernyős ikon, böngészősáv nélkül.</p>
     <button class="btn ghost" id="pwaBtn" hidden>Telepítés a főképernyőre</button>
     <label class="chk"><input type="checkbox" id="cMs"> Zárképernyős kártya (automatikus)</label>
+    <label class="chk"><input type="checkbox" id="cMsLyr"> Kártya: a cím a dalszöveg aktuális sora (ha ki: a szám címe marad)</label>
+    <label class="chk"><input type="checkbox" id="cMsDoc"> Az oldal/app címe is követi az aktuális sort (ha ki: a szám címe marad)</label>
     <p class="note">A böngészős lejátszóval együtt magától bekapcsol: a zárolt képernyőn az aktuális sor látszik a lejátszó-kártyán.</p>
     <h3>Hibaelhárítás</h3>
     <button class="btn" id="rstSoft">Újraindítás</button> <button class="btn ghost" id="rstHard">Teljes visszaállítás</button>
@@ -520,7 +522,7 @@ var $=function(id){return document.getElementById(id)};
 var LS={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 
 /* ---------- beállítások ---------- */
-var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto',kar:false,tr:false,font:'',shape:'round',csz:100,anim:'pop',al:'c',lcol:'paper',lcus:'#ffffff',caps:false,webAuto:true,vol:80,hl:'color',gw:90,acc:'',emap:'',dev:'Peak Music Setup',msAuto:true,bgm:'blob',spd:100,dim:0,glow:28,col1:'#ff7a1a',col2:'#3a1d6e',cs:100,cw:'',ccol:'paper',ccus:'#ffffff',cpos:'top',c24:true,csec:false,cdate:true,bv:0,tapw:false,bub:false,bon:false,ball:false,bn:16,bsz:100,bsp:100,bop:100,bpl:false,bbeat:true,bpop:true,bsnd:false,btilt:false,wbub:false,dpill:false,ccov:false,wb:false,mini:true,night:false,nf:22,nt:6};
+var S={blur:60,hue:0,fs:100,kin:true,emo:true,clk:true,view:'lyr',off:0,auto:true,theme:'auto',kar:false,tr:false,font:'',shape:'round',csz:100,anim:'pop',al:'c',lcol:'paper',lcus:'#ffffff',caps:false,webAuto:true,vol:80,hl:'color',gw:90,acc:'',emap:'',dev:'Peak Music Setup',msAuto:true,bgm:'blob',spd:100,dim:0,glow:28,col1:'#ff7a1a',col2:'#3a1d6e',cs:100,cw:'',ccol:'paper',ccus:'#ffffff',cpos:'top',c24:true,csec:false,cdate:true,bv:0,msLyr:true,msDoc:true,tapw:false,bub:false,bon:false,ball:false,bn:16,bsz:100,bsp:100,bop:100,bpl:false,bbeat:true,bpop:true,bsnd:false,btilt:false,wbub:false,dpill:false,ccov:false,wb:false,mini:true,night:false,nf:22,nt:6};
 try{var sv=JSON.parse(LS.get('pms.settings')||'{}');for(var k in sv)if(k in S)S[k]=sv[k];if(S.bv!==2){S.bub=false;S.bon=false;S.ball=false;S.wbub=false;S.dpill=false;S.ccov=false;S.wb=false;S.mini=true;S.night=false;S.bv=2}}catch(e){}
 function saveS(){LS.set('pms.settings',JSON.stringify(S))}
 function applyS(){
@@ -978,10 +980,10 @@ function applyS2(){
   r.setProperty('--ccol',S.ccol==='accent'?'var(--ember)':S.ccol==='custom'?S.ccus:'var(--paper)');
   $('vSpd').textContent=S.spd+'%';$('vDim').textContent=S.dim+'%';$('vGlow').textContent=S.glow+'%';$('vCs').textContent=S.cs+'%';
   [['rSpd','spd'],['rDim','dim'],['rGlow','glow'],['rCs','cs'],['col1','col1'],['col2','col2'],['cCus','ccus'],['sBg','bgm'],['sCw','cw'],['sCc','ccol'],['sCp','cpos']].forEach(function(q){$(q[0]).value=S[q[1]]});
-  $('cBub').checked=S.bub;h.dataset.bub=S.bub?'1':'';$('c24').checked=S.c24;$('cSec').checked=S.csec;$('cDate').checked=S.cdate;$('clkD').hidden=!S.cdate;
+  $('cBub').checked=S.bub;$('cMsLyr').checked=S.msLyr;$('cMsDoc').checked=S.msDoc;try{msLine(lastIdx)}catch(e){}h.dataset.bub=S.bub?'1':'';$('c24').checked=S.c24;$('cSec').checked=S.csec;$('cDate').checked=S.cdate;$('clkD').hidden=!S.cdate;
   bgSet();tickClock();applyS3();applyBub();
 }
-[['rSpd','spd',1],['rDim','dim',1],['rGlow','glow',1],['rCs','cs',1],['col1','col1'],['col2','col2'],['cCus','ccus'],['sBg','bgm'],['sCw','cw'],['sCc','ccol'],['sCp','cpos'],['c24','c24',2],['cSec','csec',2],['cDate','cdate',2],['cBub','bub',2]].forEach(function(q){
+[['rSpd','spd',1],['rDim','dim',1],['rGlow','glow',1],['rCs','cs',1],['col1','col1'],['col2','col2'],['cCus','ccus'],['sBg','bgm'],['sCw','cw'],['sCc','ccol'],['sCp','cpos'],['c24','c24',2],['cSec','csec',2],['cDate','cdate',2],['cBub','bub',2],['cMsLyr','msLyr',2],['cMsDoc','msDoc',2]].forEach(function(q){
   var e=$(q[0]);e.addEventListener(q[2]===2?'change':'input',function(){
     S[q[1]]=q[2]===2?e.checked:q[2]===1?+e.value:e.value;
     if(q[1]==='col1'||q[1]==='col2'){S.theme='custom';paintSw();if(P.track)paintTheme(P.track.pal)}
@@ -1113,11 +1115,15 @@ function msOff(){
   try{var m=navigator.mediaSession;m.metadata=null;['play','pause','nexttrack','previoustrack','seekto'].forEach(function(a){m.setActionHandler(a,null)})}catch(e){}
 }
 function msLine(i){
-  var t=P.track||{},ln=lines[i],nx=lines[i+1],ttl=(ln&&ln.s)||t.title||'';
-  ifTitle(ttl);if(msAct&&ttl)document.title=ttl;
+  var t=P.track||{},ln=lines[i],nx=lines[i+1],cur=(ln&&ln.s)||'',
+      ttl=S.msLyr?(cur||t.title||''):(t.title||''),
+      dt=S.msDoc?(cur||t.title||''):(t.title?t.title+(t.artist?' · '+t.artist:''):'');
+  ifTitle(dt);if(msAct&&dt)document.title=dt;
   if(!msAct)return;
   var im=t.img?[{src:t.img,sizes:'640x640',type:'image/jpeg'},{src:t.img,sizes:'512x512',type:'image/jpeg'},{src:t.img,sizes:'256x256',type:'image/jpeg'}]:[];
-  try{navigator.mediaSession.metadata=new MediaMetadata({title:ttl,artist:t.title?t.title+' · '+t.artist:'',album:(nx&&nx.s)||t.artist||'',artwork:im})}catch(e){}
+  try{navigator.mediaSession.metadata=new MediaMetadata(S.msLyr
+    ?{title:ttl,artist:t.title?t.title+' · '+t.artist:'',album:(nx&&nx.s)||t.artist||'',artwork:im}
+    :{title:t.title||'',artist:t.artist||'',album:'',artwork:im})}catch(e){}
 }
 function msTick(p){
   if(!msAct||Date.now()-msT<1000)return;msT=Date.now();
